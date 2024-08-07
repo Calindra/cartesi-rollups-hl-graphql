@@ -20,14 +20,16 @@ type InputRepository struct {
 }
 
 type inputRow struct {
-	Index          int    `db:"input_index"`
-	Status         int    `db:"status"`
-	MsgSender      string `db:"msg_sender"`
-	Payload        string `db:"payload"`
-	BlockNumber    int    `db:"block_number"`
-	BlockTimestamp int    `db:"block_timestamp"`
-	PrevRandao     string `db:"prev_randao"`
-	Exception      string `db:"exception"`
+	Index                  int    `db:"input_index"`
+	Status                 int    `db:"status"`
+	MsgSender              string `db:"msg_sender"`
+	Payload                string `db:"payload"`
+	BlockNumber            int    `db:"block_number"`
+	BlockTimestamp         int    `db:"block_timestamp"`
+	PrevRandao             string `db:"prev_randao"`
+	Exception              string `db:"exception"`
+	EspressoBlockNumber    int    `db:"espresso_block_number"`
+	EspressoBlockTimestamp int    `db:"espresso_block_timestamp"`
 }
 
 func (r *InputRepository) CreateTables() error {
@@ -40,7 +42,9 @@ func (r *InputRepository) CreateTables() error {
 		block_number	integer,
 		block_timestamp	integer,
 		prev_randao		text,
-		exception		text);
+		exception		text,
+		espresso_block_number	integer,
+		espresso_block_timestamp	integer);
 	CREATE INDEX IF NOT EXISTS idx_input_index ON convenience_inputs(input_index);
 	CREATE INDEX IF NOT EXISTS idx_status ON convenience_inputs(status);`
 	_, err := r.Db.Exec(schema)
@@ -72,7 +76,9 @@ func (r *InputRepository) rawCreate(ctx context.Context, input model.AdvanceInpu
 		block_number,
 		block_timestamp,
 		prev_randao,
-		exception
+		exception,
+		espresso_block_number,
+		espresso_block_timestamp
 	) VALUES (
 		$1,
 		$2,
@@ -81,7 +87,9 @@ func (r *InputRepository) rawCreate(ctx context.Context, input model.AdvanceInpu
 		$5,
 		$6,
 		$7,
-		$8
+		$8,
+		$9,
+		$10
 	);`
 
 	exec := DBExecutor{&r.Db}
@@ -96,6 +104,8 @@ func (r *InputRepository) rawCreate(ctx context.Context, input model.AdvanceInpu
 		input.BlockTimestamp.UnixMilli(),
 		input.PrevRandao,
 		common.Bytes2Hex(input.Exception),
+		input.EspressoBlockNumber,
+		input.EspressoBlockTimestamp.UnixMilli(),
 	)
 
 	if err != nil {
@@ -132,7 +142,9 @@ func (r *InputRepository) FindByStatusNeDesc(ctx context.Context, status model.C
 		payload,
 		block_number,
 		timestamp,
-		exception FROM convenience_inputs WHERE status <> $1
+		exception,
+		espresso_block_number,
+		espresso_block_timestamp FROM convenience_inputs WHERE status <> $1
 		ORDER BY input_index DESC`
 	res, err := r.Db.QueryxContext(
 		ctx,
@@ -162,7 +174,9 @@ func (r *InputRepository) FindByStatus(ctx context.Context, status model.Complet
 		block_number,
 		block_timestamp,
 		prev_randao,
-		exception FROM convenience_inputs WHERE status = $1
+		exception,
+		espresso_block_number,
+		espresso_block_timestamp FROM convenience_inputs WHERE status = $1
 		ORDER BY input_index ASC`
 	res, err := r.Db.QueryxContext(
 		ctx,
@@ -192,7 +206,9 @@ func (r *InputRepository) FindByIndex(ctx context.Context, index int) (*model.Ad
 		block_number,
 		block_timestamp,
 		prev_randao,
-		exception FROM convenience_inputs WHERE input_index = $1`
+		exception,
+		espresso_block_number,
+		espresso_block_timestamp FROM convenience_inputs WHERE input_index = $1`
 	res, err := r.Db.QueryxContext(
 		ctx,
 		sql,
@@ -260,7 +276,9 @@ func (c *InputRepository) FindAll(
 		block_number,
 		block_timestamp,
 		prev_randao,
-		exception FROM convenience_inputs `
+		exception,
+		espresso_block_number,
+		espresso_block_timestamp FROM convenience_inputs `
 	where, args, argsCount, err := transformToInputQuery(filter)
 	if err != nil {
 		slog.Error("database error", "err", err)
@@ -361,25 +379,28 @@ func transformToInputQuery(
 
 func parseRowInput(row inputRow) model.AdvanceInput {
 	return model.AdvanceInput{
-		Index:          row.Index,
-		Status:         model.CompletionStatus(row.Status),
-		MsgSender:      common.HexToAddress(row.MsgSender),
-		Payload:        common.Hex2Bytes(row.Payload),
-		BlockNumber:    uint64(row.BlockNumber),
-		BlockTimestamp: time.UnixMilli(int64(row.BlockTimestamp)),
-		PrevRandao:     row.PrevRandao,
-		Exception:      common.Hex2Bytes(row.Exception),
+		Index:                  row.Index,
+		Status:                 model.CompletionStatus(row.Status),
+		MsgSender:              common.HexToAddress(row.MsgSender),
+		Payload:                common.Hex2Bytes(row.Payload),
+		BlockNumber:            uint64(row.BlockNumber),
+		BlockTimestamp:         time.UnixMilli(int64(row.BlockTimestamp)),
+		PrevRandao:             row.PrevRandao,
+		Exception:              common.Hex2Bytes(row.Exception),
+		EspressoBlockNumber:    uint64(row.EspressoBlockNumber),
+		EspressoBlockTimestamp: time.UnixMilli(int64(row.EspressoBlockTimestamp)),
 	}
 }
 
 func parseInput(res *sqlx.Rows) (*model.AdvanceInput, error) {
 	var (
-		input          model.AdvanceInput
-		msgSender      string
-		payload        string
-		blockTimestamp int64
-		prevRandao     string
-		exception      string
+		input                  model.AdvanceInput
+		msgSender              string
+		payload                string
+		blockTimestamp         int64
+		espressoBlockTimestamp int64
+		prevRandao             string
+		exception              string
 	)
 	err := res.Scan(
 		&input.Index,
@@ -390,6 +411,8 @@ func parseInput(res *sqlx.Rows) (*model.AdvanceInput, error) {
 		&blockTimestamp,
 		&prevRandao,
 		&exception,
+		&input.EspressoBlockNumber,
+		&espressoBlockTimestamp,
 	)
 	if err != nil {
 		return nil, err
@@ -399,5 +422,6 @@ func parseInput(res *sqlx.Rows) (*model.AdvanceInput, error) {
 	input.BlockTimestamp = time.UnixMilli(blockTimestamp)
 	input.PrevRandao = prevRandao
 	input.Exception = common.Hex2Bytes(exception)
+	input.EspressoBlockTimestamp = time.UnixMilli(espressoBlockTimestamp)
 	return &input, nil
 }
