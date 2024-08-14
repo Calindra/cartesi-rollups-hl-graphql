@@ -21,37 +21,37 @@ models:
       - github.com/99designs/gqlgen/graphql.ID
   Input:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.Input
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Input
   Voucher:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.Voucher
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Voucher
   Notice:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.Notice
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Notice
   Report:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.Report
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Report
   InputConnection:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.InputConnection
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.InputConnection
   InputEdge:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.InputEdge
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.InputEdge
   VoucherConnection:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.VoucherConnection
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.VoucherConnection
   VoucherEdge:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.VoucherEdge
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.VoucherEdge
   NoticeConnection:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.NoticeConnection
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.NoticeConnection
   NoticeEdge:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.NoticeEdge
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.NoticeEdge
   ReportConnection:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.ReportConnection
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.ReportConnection
   ReportEdge:
     model:
-      - github.com/calindra/nonodo/internal/reader/model.ReportEdge
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.ReportEdge

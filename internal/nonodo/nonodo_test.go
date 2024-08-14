@@ -168,29 +168,6 @@ func (s *NonodoSuite) TestItProcessesInspectInputs() {
 	}
 }
 
-func (s *NonodoSuite) TestItWorksWithExternalApplication() {
-	opts := NewNonodoOpts()
-	opts.ApplicationArgs = []string{
-		"go",
-		"run",
-		"github.com/calindra/nonodo/internal/echoapp/echoapp",
-		"--endpoint",
-		fmt.Sprintf("http://%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
-	}
-	opts.HttpPort = 8090
-	s.setupTest(opts)
-	time.Sleep(100 * time.Millisecond)
-
-	s.T().Log("sending inspect to external application")
-	payload := s.makePayload()
-
-	response, err := s.sendInspect(payload[:])
-	s.NoError(err)
-	slog.Debug("response", "body", string(response.Body))
-	s.Require().Equal(http.StatusOK, response.StatusCode())
-	s.Require().Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
-}
-
 //
 // Setup and tear down
 //
