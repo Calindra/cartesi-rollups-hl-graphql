@@ -32,7 +32,7 @@ RUN go mod download
 COPY ../ ./
 
 # Execute o build da aplicação
-RUN go build -o nonodo
+RUN go build -o cartesi-rollups-hl-graphql
 
 # Exponha a porta em que a aplicação irá rodar
 EXPOSE 8080
@@ -40,4 +40,4 @@ EXPOSE 8080
 HEALTHCHECK CMD curl --fail http://localhost:8080/health || exit 1
 
 # Comando para rodar a aplicação
-CMD ["./nonodo", "--http-address=0.0.0.0", "--high-level-graphql", "--enable-debug", "--node-version", "v2", "--db-implementation", "postgres", "--graphile-url", "http://postgraphile:5001/graphql", "--anvil-address", "0.0.0.0" ]
+CMD ["./cartesi-rollups-hl-graphql", "--http-address=0.0.0.0", "--high-level-graphql", "--enable-debug", "--node-version", "v2", "--db-implementation", "postgres", "--graphile-url", "http://postgraphile:5001/graphql", "--anvil-address", "0.0.0.0" ]

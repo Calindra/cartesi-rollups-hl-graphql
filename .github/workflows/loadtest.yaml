@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Fix permissions
-        run: sudo chmod -R 777 /home/runner/work/nonodo/nonodo
+        run: sudo chmod -R 777 /home/runner/work/cartesi-rollups-hl-graphql/cartesi-rollups-hl-graphql
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -63,22 +63,22 @@ jobs:
             sleep 1
           done
 
-      - name: Build nonodo Docker image
+      - name: Build cartesi-rollups-hl-graphql Docker image
         run: docker compose build app
 
-      - name: Run nonodo application
+      - name: Run cartesi-rollups-hl-graphql application
         run: |
           docker compose down
           docker compose up --wait app
 
-      - name: Wait for Nonodo to be ready
+      - name: Wait for cartesi-rollups-hl-graphql to be ready
         run: |
           for i in {1..60}; do
             curl -sSf http://localhost:8080/health && break
             sleep 1
           done
 
-      - name: Get logs if nonodo is not running
+      - name: Get logs if cartesi-rollups-hl-graphql is not running
         run: |
           nonodo_state=$(docker compose ps --format '{{.State}}' app)
           if [ "$nonodo_state" != "running" ]; then
@@ -115,9 +115,9 @@ jobs:
           docker ps
           k6 run loadtesting/test.js
           docker compose logs app
-      - name: Get Nonodo logs
+      - name: Get cartesi-rollups-hl-graphql logs
         if: ${{ always() }}
-        id: nonodologs
+        id: docker-compose-logs
         run: |
           docker compose logs
 

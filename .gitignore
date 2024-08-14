@@ -1,7 +1,7 @@
 TODO
 
 .DS_Store
-/nonodo
-/nonodo.exe
+/cartesi-rollups-hl-graphql
+/cartesi-rollups-hl-graphql.exe
 *.sqlite3
 .idea/
