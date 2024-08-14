@@ -9,22 +9,12 @@ import (
 
 func (r *RollupAPI) Fetcher(ctx echo.Context, request GioJSONRequestBody) (*GioResponseRollup, *DA.HttpCustomError) {
 	var (
-		espresso uint16 = 2222
 		syscoin  uint16 = 5700
 		celestia uint16 = 714
 		its_ok   uint16 = 42
 	)
 
 	switch request.Domain {
-	case espresso:
-		espressoFetcher := DA.NewEspressoFetcher(r.model.GetInputRepository())
-		data, err := espressoFetcher.Fetch(ctx, request.Id)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &GioResponseRollup{Data: *data, Code: its_ok}, nil
 	case syscoin:
 		syscoinFetcher := DA.NewSyscoinClient()
 		data, err := syscoinFetcher.Fetch(ctx, request.Id)

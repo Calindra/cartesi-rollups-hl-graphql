@@ -22,7 +22,6 @@ import (
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/rollup"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/sequencers/espresso"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/sequencers/inputter"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/supervisor"
 	"github.com/ethereum/go-ethereum/common"
@@ -321,21 +320,6 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 				InputBoxBlock:      opts.InputBoxBlock,
 				ApplicationAddress: common.HexToAddress(opts.ApplicationAddress),
 			})
-		} else if opts.Sequencer == "espresso" {
-			sequencer = model.NewEspressoSequencer(modelInstance)
-			w.Workers = append(w.Workers, espresso.NewEspressoListener(
-				opts.EspressoUrl,
-				opts.Namespace,
-				modelInstance.GetInputRepository(),
-				opts.FromBlock,
-				&inputter.InputterWorker{
-					Model:              modelInstance,
-					Provider:           opts.RpcUrl,
-					InputBoxAddress:    common.HexToAddress(opts.InputBoxAddress),
-					InputBoxBlock:      opts.InputBoxBlock,
-					ApplicationAddress: common.HexToAddress(opts.ApplicationAddress),
-				},
-			))
 		} else {
 			panic("sequencer not supported")
 		}
