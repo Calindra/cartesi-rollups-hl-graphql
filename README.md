@@ -30,14 +30,14 @@ export POSTGRES_USER=myuser
 export POSTGRES_PASSWORD=mypassword
 ```
 
-When running nonodo, set flag db-implementation with the value postgres
+When running cartesi-rollups-hl-graphql, set flag db-implementation with the value postgres
 
 Graphile can be called using `http://localhost:5001/graphql` and you can test queries using `http://localhost:5001/graphiql`
 
 You can change Graphile address and port using the flags graphile-url.
 
 ```sh
-/nonodo --graphile-url http://mygraphileaddress:5034
+./cartesi-rollups-hl-graphql --graphile-url http://mygraphileaddress:5034
 ```
 
 ## Contributors
