@@ -1,22 +1,22 @@
 {
-  "name": "nonodo",
+  "name": "cartesi-rollups-hl-graphql",
   "version": "1.0.0",
   "private": false,
-  "description": "Nonodo CLI tool",
-  "homepage": "https://github.com/Calindra/nonodo#readme",
+  "description": "Cartesi Rollups HL GraphQL",
+  "homepage": "https://github.com/Calindra/cartesi-rollups-hl-graphql#readme",
   "bugs": {
-    "url": "https://github.com/Calindra/nonodo/issues"
+    "url": "https://github.com/Calindra/cartesi-rollups-hl-graphql/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Calindra/nonodo.git"
+    "url": "https://github.com/Calindra/cartesi-rollups-hl-graphql.git"
   },
   "license": "MIT",
   "bin": {
-    "nonodo": "./src/nonodo.js"
+    "cartesi-rollups-hl-graphql": "./src/cartesi-rollups-hl-graphql.js"
   },
   "scripts": {
-    "start": "node src/nonodo.js"
+    "start": "node src/cartesi-rollups-hl-graphql.js"
   },
   "publishConfig": {
     "access": "public"

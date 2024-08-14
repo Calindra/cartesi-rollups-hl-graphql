@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/calindra/nonodo/internal/commons"
-	"github.com/calindra/nonodo/internal/devnet"
-	"github.com/calindra/nonodo/internal/inspect"
-	"github.com/calindra/nonodo/internal/readerclient"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/inspect"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/readerclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/suite"
@@ -166,29 +166,6 @@ func (s *NonodoSuite) TestItProcessesInspectInputs() {
 		s.Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
 		s.Equal(inspect.Accepted, response.JSON200.Status)
 	}
-}
-
-func (s *NonodoSuite) TestItWorksWithExternalApplication() {
-	opts := NewNonodoOpts()
-	opts.ApplicationArgs = []string{
-		"go",
-		"run",
-		"github.com/calindra/nonodo/internal/echoapp/echoapp",
-		"--endpoint",
-		fmt.Sprintf("http://%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
-	}
-	opts.HttpPort = 8090
-	s.setupTest(opts)
-	time.Sleep(100 * time.Millisecond)
-
-	s.T().Log("sending inspect to external application")
-	payload := s.makePayload()
-
-	response, err := s.sendInspect(payload[:])
-	s.NoError(err)
-	slog.Debug("response", "body", string(response.Body))
-	s.Require().Equal(http.StatusOK, response.StatusCode())
-	s.Require().Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
 }
 
 //

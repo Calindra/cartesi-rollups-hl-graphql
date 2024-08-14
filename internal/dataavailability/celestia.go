@@ -26,7 +26,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tendermint/tendermint/rpc/client/http"
 
-	"github.com/calindra/nonodo/internal/contracts"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
 )
 
 var CELESTIA_RELAY_ADDRESS common.Address = common.HexToAddress("0x4e64020dc800f02decb8Bd45bB4D0f74048e7535")

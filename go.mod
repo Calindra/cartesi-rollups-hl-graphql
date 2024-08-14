@@ -1,4 +1,4 @@
-module github.com/calindra/nonodo
+module github.com/calindra/cartesi-rollups-hl-graphql
 
 go 1.22.3
 
@@ -6,7 +6,6 @@ toolchain go1.22.4
 
 require (
 	github.com/99designs/gqlgen v0.17.41
-	github.com/EspressoSystems/espresso-sequencer-go v0.0.16
 	github.com/Khan/genqlient v0.6.0
 	github.com/carlmjohnson/versioninfo v0.22.5
 	github.com/celestiaorg/celestia-openrpc v0.4.0
@@ -23,7 +22,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tendermint/tendermint v0.0.0-00010101000000-000000000000
-	github.com/tidwall/gjson v1.17.1
 	github.com/vektah/gqlparser/v2 v2.5.10
 	golang.org/x/sys v0.20.0
 )
@@ -137,7 +135,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
 	github.com/shirou/gopsutil v3.21.6+incompatible // indirect
-	github.com/sigurn/crc8 v0.0.0-20220107193325-2243fe600f9f // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sosodev/duration v1.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -146,8 +143,6 @@ require (
 	github.com/supranational/blst v0.3.11 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tetratelabs/wazero v1.7.2 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/urfave/cli/v2 v2.25.7 // indirect

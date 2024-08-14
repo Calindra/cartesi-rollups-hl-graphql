@@ -8,8 +8,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/calindra/nonodo/internal/reader/graph"
-	"github.com/calindra/nonodo/internal/reader/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/graph"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 )
 
 // Voucher is the resolver for the voucher field.

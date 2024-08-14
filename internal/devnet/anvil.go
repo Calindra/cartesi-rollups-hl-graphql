@@ -15,8 +15,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/calindra/nonodo/internal/commons"
-	"github.com/calindra/nonodo/internal/supervisor"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/supervisor"
 )
 
 // Default port for the Ethereum node.

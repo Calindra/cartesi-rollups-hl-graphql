@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	blobstreamx "github.com/calindra/nonodo/internal/dataavailability/contracts/BlobstreamX.sol"
+	blobstreamx "github.com/calindra/cartesi-rollups-hl-graphql/internal/dataavailability/contracts/BlobstreamX.sol"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

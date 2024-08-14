@@ -26,7 +26,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 )
 

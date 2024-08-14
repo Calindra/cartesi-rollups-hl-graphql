@@ -21,7 +21,7 @@ const PACKAGE_NONODO_VERSION =
   process.env.PACKAGE_NONODO_VERSION ?? version;
 const PACKAGE_NONODO_URL = new URL(
   process.env.PACKAGE_NONODO_URL ??
-    `https://github.com/Calindra/nonodo/releases/download/v${PACKAGE_NONODO_VERSION}/`,
+    `https://github.com/Calindra/cartesi-rollups-hl-graphql/releases/download/v${PACKAGE_NONODO_VERSION}/`,
 );
 const PACKAGE_NONODO_DIR = process.env.PACKAGE_NONODO_DIR ?? tmpdir();
 
@@ -51,14 +51,14 @@ function getReleaseName() {
   const arcName = getArch();
   const platformName = getPlatform();
   const exe = platform() === "win32" ? ".zip" : ".tar.gz";
-  return `nonodo-v${PACKAGE_NONODO_VERSION}-${platformName}-${arcName}${exe}`;
+  return `cartesi-rollups-hl-graphql-v${PACKAGE_NONODO_VERSION}-${platformName}-${arcName}${exe}`;
 }
 
 function getBinaryName() {
   const arcName = getArch();
   const platformName = getPlatform();
   const exe = platform() === "win32" ? ".exe" : "";
-  return `nonodo-v${PACKAGE_NONODO_VERSION}-${platformName}-${arcName}${exe}`;
+  return `cartesi-rollups-hl-graphql-v${PACKAGE_NONODO_VERSION}-${platformName}-${arcName}${exe}`;
 }
 
 const releaseName = getReleaseName();

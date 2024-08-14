@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/calindra/nonodo/internal/convenience/adapter"
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
-	cRepos "github.com/calindra/nonodo/internal/convenience/repository"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/adapter"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	cRepos "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )

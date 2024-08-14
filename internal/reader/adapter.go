@@ -3,7 +3,7 @@ package reader
 import (
 	"context"
 
-	graphql "github.com/calindra/nonodo/internal/reader/model"
+	graphql "github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 )
 
 type Adapter interface {

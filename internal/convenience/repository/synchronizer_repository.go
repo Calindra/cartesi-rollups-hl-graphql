@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/calindra/nonodo/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 	"github.com/jmoiron/sqlx"
 )
 

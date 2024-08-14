@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/calindra/nonodo/internal/graphile"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/graphile"
 )
 
 const outputQuery = `

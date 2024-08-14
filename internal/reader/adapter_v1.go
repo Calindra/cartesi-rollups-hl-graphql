@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
-	cRepos "github.com/calindra/nonodo/internal/convenience/repository"
-	services "github.com/calindra/nonodo/internal/convenience/services"
-	graphql "github.com/calindra/nonodo/internal/reader/model"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	cRepos "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	services "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
+	graphql "github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
 )

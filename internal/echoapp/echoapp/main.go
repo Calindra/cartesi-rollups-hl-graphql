@@ -13,7 +13,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/calindra/nonodo/internal/echoapp"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/echoapp"
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/spf13/cobra"
 )
