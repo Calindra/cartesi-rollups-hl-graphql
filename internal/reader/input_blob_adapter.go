@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"math/big"
 
-	"github.com/calindra/nonodo/internal/contracts"
-	graphql "github.com/calindra/nonodo/internal/reader/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
+	graphql "github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 	"github.com/ethereum/go-ethereum/common"
 )
 

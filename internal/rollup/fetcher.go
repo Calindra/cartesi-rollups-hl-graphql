@@ -3,7 +3,7 @@ package rollup
 import (
 	"net/http"
 
-	DA "github.com/calindra/nonodo/internal/dataavailability"
+	DA "github.com/calindra/cartesi-rollups-hl-graphql/internal/dataavailability"
 	"github.com/labstack/echo/v4"
 )
 

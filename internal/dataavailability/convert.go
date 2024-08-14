@@ -3,7 +3,7 @@ package dataavailability
 import (
 	"math/big"
 
-	"github.com/calindra/nonodo/internal/contracts"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
 	"github.com/tendermint/tendermint/crypto/merkle"
 	"github.com/tendermint/tendermint/libs/bytes"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/calindra/nonodo/internal/convenience/adapter"
-	"github.com/calindra/nonodo/internal/convenience/decoder"
-	"github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/convenience/repository"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/adapter"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/decoder"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
 	"github.com/ethereum/go-ethereum/common"
 )
 

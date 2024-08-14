@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/calindra/nonodo/internal/contracts"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

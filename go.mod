@@ -1,4 +1,4 @@
-module github.com/calindra/nonodo
+module github.com/calindra/cartesi-rollups-hl-graphql
 
 go 1.22.3
 

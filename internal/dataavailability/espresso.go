@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
-	cRepos "github.com/calindra/nonodo/internal/convenience/repository"
-	"github.com/calindra/nonodo/internal/devnet"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	cRepos "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo/v4"
 )

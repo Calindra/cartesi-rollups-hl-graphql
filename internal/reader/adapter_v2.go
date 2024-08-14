@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	convenience "github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/convenience/services"
-	"github.com/calindra/nonodo/internal/graphile"
-	graphql "github.com/calindra/nonodo/internal/reader/model"
+	convenience "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/graphile"
+	graphql "github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 	"github.com/ethereum/go-ethereum/common"
 )
 

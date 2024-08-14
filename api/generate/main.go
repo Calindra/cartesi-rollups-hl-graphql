@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 )
 
 func getYAML(v2 string) ([]byte, error) {

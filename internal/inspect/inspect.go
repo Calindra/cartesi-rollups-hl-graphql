@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"time"
 
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/model"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/labstack/echo/v4"
 )

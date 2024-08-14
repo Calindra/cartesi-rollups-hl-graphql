@@ -5,11 +5,11 @@ import (
 	"log/slog"
 	"net/url"
 
-	"github.com/calindra/nonodo/internal/convenience/decoder"
-	"github.com/calindra/nonodo/internal/convenience/repository"
-	"github.com/calindra/nonodo/internal/convenience/services"
-	"github.com/calindra/nonodo/internal/convenience/synchronizer"
-	"github.com/calindra/nonodo/internal/graphile"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/decoder"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/synchronizer"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/graphile"
 	"github.com/jmoiron/sqlx"
 )
 

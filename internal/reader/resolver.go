@@ -1,8 +1,8 @@
 package reader
 
 import (
-	"github.com/calindra/nonodo/internal/convenience/services"
-	"github.com/calindra/nonodo/internal/reader/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 )
 
 // This file will not be regenerated automatically.

@@ -4,7 +4,7 @@
 package model
 
 import (
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 )
 
 //

@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	rollup "github.com/calindra/nonodo/internal/rollup"
+	rollup "github.com/calindra/cartesi-rollups-hl-graphql/internal/rollup"
 )
 
 // This worker uses the rollup API to implement an echo application.
