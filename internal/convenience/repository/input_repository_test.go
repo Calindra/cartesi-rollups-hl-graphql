@@ -333,11 +333,13 @@ func (s *InputRepositorySuite) TestFindInputByAppContractAndIndex() {
 	})
 	s.NoError(err)
 
-	input, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, 2222, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
+	input, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, 3333, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
 	s.NoError(err)
+	slog.Debug("INPUT: ", "input", input)
 
-	s.Equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", input.AppContract.Hex())
+	s.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), input.AppContract)
 	s.Equal(3333, input.Index)
+	s.Equal(uint64(2), input.BlockNumber)
 }
 
 func (s *InputRepositorySuite) teardown() {

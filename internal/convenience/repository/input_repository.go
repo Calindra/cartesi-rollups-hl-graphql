@@ -227,6 +227,39 @@ func (r *InputRepository) FindByIndex(ctx context.Context, index int) (*model.Ad
 	return nil, nil
 }
 
+func (r *InputRepository) FindInputByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*model.AdvanceInput, error) {
+	sql := `SELECT
+		input_index,
+		status,
+		msg_sender,
+		payload,
+		block_number,
+		block_timestamp,
+		prev_randao,
+		exception,
+		app_contract FROM convenience_inputs WHERE input_index = $1 AND app_contract = $2`
+
+	res, err := r.Db.QueryxContext(
+		ctx,
+		sql,
+		index,
+		appContract.Hex(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if res.Next() {
+		input, err := parseInput(res)
+		if err != nil {
+			return nil, err
+		}
+		return input, nil
+	}
+	return nil, nil
+}
+
 func (c *InputRepository) Count(
 	ctx context.Context,
 	filter []*model.ConvenienceFilter,
