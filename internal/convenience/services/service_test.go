@@ -20,6 +20,7 @@ type ConvenienceServiceSuite struct {
 	repository       *repository.VoucherRepository
 	noticeRepository *repository.NoticeRepository
 	reportRepository *repository.ReportRepository
+	inputRepository  *repository.InputRepository
 	service          *ConvenienceService
 }
 
@@ -44,10 +45,18 @@ func (s *ConvenienceServiceSuite) SetupTest() {
 	err = s.reportRepository.CreateTables()
 	s.NoError(err)
 
+	s.inputRepository = &repository.InputRepository{
+		Db: *db,
+	}
+
+	err = s.inputRepository.CreateTables()
+	s.NoError(err)
+
 	s.service = &ConvenienceService{
 		voucherRepository: s.repository,
 		noticeRepository:  s.noticeRepository,
 		reportRepository:  s.reportRepository,
+		inputRepository:   s.inputRepository,
 	}
 }
 
@@ -252,6 +261,47 @@ func (s *ConvenienceServiceSuite) TestCreateReportIdempotency() {
 	})
 	s.NoError(err)
 	count, err = s.reportRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+}
+
+func (s *ConvenienceServiceSuite) TestCreateInputIdempotency() {
+	ctx := context.Background()
+	_, err := s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	count, err := s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+
+	_, err = s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	count, err = s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+}
+
+func (s *ConvenienceServiceSuite) TestCreateInputIdempotencyWithoutAppContract() {
+	ctx := context.Background()
+	_, err := s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index: 1,
+	})
+	s.NoError(err)
+	count, err := s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+
+	_, err = s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	count, err = s.inputRepository.Count(ctx, nil)
 	s.NoError(err)
 	s.Equal(1, int(count))
 }

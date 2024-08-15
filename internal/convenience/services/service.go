@@ -79,7 +79,7 @@ func (s *ConvenienceService) CreateInput(
 	ctx context.Context,
 	input *model.AdvanceInput,
 ) (*model.AdvanceInput, error) {
-	inputInDb, err := s.inputRepository.FindByIndex(ctx, input.Index)
+	inputInDb, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, input.Index, input.AppContract)
 
 	if err != nil {
 		return nil, err
