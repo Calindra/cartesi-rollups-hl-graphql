@@ -18,7 +18,7 @@ type NoticeRepository struct {
 }
 
 func (c *NoticeRepository) CreateTables() error {
-	schema := `CREATE TABLE IF NOT EXISTS notices (
+	schema := `CREATE TABLE IF NOT EXISTS convenience_notices (
 		payload 		text,
 		input_index		integer,
 		output_index	integer,
@@ -32,7 +32,7 @@ func (c *NoticeRepository) CreateTables() error {
 func (c *NoticeRepository) Create(
 	ctx context.Context, data *model.ConvenienceNotice,
 ) (*model.ConvenienceNotice, error) {
-	insertSql := `INSERT INTO notices (
+	insertSql := `INSERT INTO convenience_notices (
 		payload,
 		input_index,
 		output_index) VALUES ($1, $2, $3)`
@@ -45,7 +45,7 @@ func (c *NoticeRepository) Create(
 		data.OutputIndex,
 	)
 	if err != nil {
-		slog.Error("Error creating notice", "Error", err)
+		slog.Error("Error creating convenience_notice", "Error", err)
 		return nil, err
 	}
 	return data, nil
@@ -54,7 +54,7 @@ func (c *NoticeRepository) Create(
 func (c *NoticeRepository) Update(
 	ctx context.Context, data *model.ConvenienceNotice,
 ) (*model.ConvenienceNotice, error) {
-	sqlUpdate := `UPDATE notices SET 
+	sqlUpdate := `UPDATE convenience_notices SET 
 		payload = $1
 		WHERE input_index = $2 and output_index = $3`
 	exec := DBExecutor{&c.Db}
@@ -66,7 +66,7 @@ func (c *NoticeRepository) Update(
 		data.OutputIndex,
 	)
 	if err != nil {
-		slog.Error("Error updating notice", "Error", err)
+		slog.Error("Error updating convenience_notice", "Error", err)
 		return nil, err
 	}
 	return data, nil
@@ -76,7 +76,7 @@ func (c *NoticeRepository) Count(
 	ctx context.Context,
 	filter []*model.ConvenienceFilter,
 ) (uint64, error) {
-	query := `SELECT count(*) FROM notices `
+	query := `SELECT count(*) FROM convenience_notices `
 	where, args, _, err := transformToNoticeQuery(filter)
 	if err != nil {
 		return 0, err
@@ -108,7 +108,7 @@ func (c *NoticeRepository) FindAllNotices(
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT * FROM notices `
+	query := `SELECT * FROM convenience_notices `
 	where, args, argsCount, err := transformToNoticeQuery(filter)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ func (c *NoticeRepository) FindAllNotices(
 func (c *NoticeRepository) FindByInputAndOutputIndex(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 ) (*model.ConvenienceNotice, error) {
-	query := `SELECT * FROM notices WHERE input_index = $1 and output_index = $2 LIMIT 1`
+	query := `SELECT * FROM convenience_notices WHERE input_index = $1 and output_index = $2 LIMIT 1`
 	stmt, err := c.Db.Preparex(query)
 	if err != nil {
 		return nil, err
