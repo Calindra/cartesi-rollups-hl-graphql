@@ -55,9 +55,10 @@ func (s *ReportRepositorySuite) TestCreateReport() {
 func (s *ReportRepositorySuite) TestCreateReportAndFind() {
 	ctx := context.Background()
 	_, err := s.reportRepository.Create(ctx, cModel.Report{
-		InputIndex: 1,
-		Index:      2,
-		Payload:    common.Hex2Bytes("1122"),
+		InputIndex:  1,
+		Index:       2,
+		Payload:     common.Hex2Bytes("1122"),
+		AppContract: common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
 	})
 	s.NoError(err)
 	report, err := s.reportRepository.FindByInputAndOutputIndex(
@@ -67,6 +68,7 @@ func (s *ReportRepositorySuite) TestCreateReportAndFind() {
 	)
 	s.NoError(err)
 	s.Equal("1122", common.Bytes2Hex(report.Payload))
+	s.Equal("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", report.AppContract.Hex())
 }
 
 func (s *ReportRepositorySuite) TestReportNotFound() {
