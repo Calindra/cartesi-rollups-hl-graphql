@@ -179,7 +179,7 @@ func (c *NoticeRepository) FindByInputAndOutputIndex(
 		if err != nil {
 			return nil, err
 		}
-		slog.Debug("RETORNOU NOTICE", "notice", notice)
+
 		return notice, nil
 	}
 
@@ -219,8 +219,7 @@ func transformToNoticeQuery(
 
 func parseNotice(res *sqlx.Rows) (*model.ConvenienceNotice, error) {
 	var (
-		notice model.ConvenienceNotice
-		// payload     string
+		notice      model.ConvenienceNotice
 		appContract string
 	)
 	err := res.Scan(
@@ -230,10 +229,9 @@ func parseNotice(res *sqlx.Rows) (*model.ConvenienceNotice, error) {
 		&appContract,
 	)
 	if err != nil {
-		slog.Error("ERROR PARSENOTICE", "error", err)
 		return nil, err
 	}
-	slog.Error("NÃO APRESENTOU ERRO")
+
 	notice.AppContract = common.HexToAddress(appContract)
 
 	return &notice, nil
