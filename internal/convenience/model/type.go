@@ -87,9 +87,10 @@ type Input interface{}
 
 // Rollups report type.
 type Report struct {
-	Index      int
-	InputIndex int
-	Payload    []byte
+	Index       int
+	InputIndex  int
+	Payload     []byte
+	AppContract common.Address
 }
 
 // Rollups advance input type.
