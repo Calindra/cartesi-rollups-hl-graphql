@@ -40,6 +40,7 @@ type ConvenienceVoucher struct {
 	InputIndex  uint64         `db:"input_index"`
 	OutputIndex uint64         `db:"output_index"`
 	Executed    bool           `db:"executed"`
+	AppContract common.Address `db:"app_contract"`
 
 	// Proof we can fetch from the original GraphQL
 
