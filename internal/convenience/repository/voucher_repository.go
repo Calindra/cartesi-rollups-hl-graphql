@@ -27,6 +27,7 @@ type voucherRow struct {
 	InputIndex  uint64 `db:"input_index"`
 	OutputIndex uint64 `db:"output_index"`
 	Executed    bool   `db:"executed"`
+	AppContract string `db:"app_contract"`
 }
 
 func (c *VoucherRepository) CreateTables() error {
@@ -36,6 +37,7 @@ func (c *VoucherRepository) CreateTables() error {
 		executed	BOOLEAN,
 		input_index  integer,
 		output_index integer,
+		app_contract    text,
 		PRIMARY KEY (input_index, output_index));`
 
 	// execute a query on the server
@@ -51,7 +53,8 @@ func (c *VoucherRepository) CreateVoucher(
 		payload,
 		executed,
 		input_index,
-		output_index) VALUES ($1, $2, $3, $4, $5)`
+		output_index,
+		app_contract) VALUES ($1, $2, $3, $4, $5, $6)`
 
 	exec := DBExecutor{&c.Db}
 
@@ -63,6 +66,7 @@ func (c *VoucherRepository) CreateVoucher(
 		voucher.Executed,
 		voucher.InputIndex,
 		voucher.OutputIndex,
+		voucher.AppContract.Hex(),
 	)
 	if err != nil {
 		slog.Error("Error creating vouchers", "Error", err)
@@ -230,6 +234,7 @@ func (c *VoucherRepository) FindAllVouchers(
 
 func convertToConvenienceVoucher(row voucherRow) model.ConvenienceVoucher {
 	destinationAddress := common.HexToAddress(row.Destination)
+	appContract := common.HexToAddress(row.AppContract)
 
 	voucher := model.ConvenienceVoucher{
 		Destination: destinationAddress,
@@ -237,6 +242,7 @@ func convertToConvenienceVoucher(row voucherRow) model.ConvenienceVoucher {
 		InputIndex:  row.InputIndex,
 		OutputIndex: row.OutputIndex,
 		Executed:    row.Executed,
+		AppContract: appContract,
 	}
 
 	return voucher
