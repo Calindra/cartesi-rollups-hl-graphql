@@ -31,7 +31,7 @@ type voucherRow struct {
 }
 
 func (c *VoucherRepository) CreateTables() error {
-	schema := `CREATE TABLE IF NOT EXISTS vouchers (
+	schema := `CREATE TABLE IF NOT EXISTS convenience_vouchers (
 		destination text,
 		payload 	text,
 		executed	BOOLEAN,
@@ -48,7 +48,7 @@ func (c *VoucherRepository) CreateTables() error {
 func (c *VoucherRepository) CreateVoucher(
 	ctx context.Context, voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
-	insertVoucher := `INSERT INTO vouchers (
+	insertVoucher := `INSERT INTO convenience_vouchers (
 		destination,
 		payload,
 		executed,
@@ -69,7 +69,7 @@ func (c *VoucherRepository) CreateVoucher(
 		voucher.AppContract.Hex(),
 	)
 	if err != nil {
-		slog.Error("Error creating vouchers", "Error", err)
+		slog.Error("Error creating convenience_vouchers", "Error", err)
 		return nil, err
 	}
 	return voucher, nil
@@ -78,7 +78,7 @@ func (c *VoucherRepository) CreateVoucher(
 func (c *VoucherRepository) UpdateVoucher(
 	ctx context.Context, voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
-	updateVoucher := `UPDATE vouchers SET 
+	updateVoucher := `UPDATE convenience_vouchers SET 
 		destination = $1,
 		payload = $2,
 		executed = $3
@@ -106,7 +106,7 @@ func (c *VoucherRepository) VoucherCount(
 	ctx context.Context,
 ) (uint64, error) {
 	var count int
-	err := c.Db.GetContext(ctx, &count, "SELECT count(*) FROM vouchers")
+	err := c.Db.GetContext(ctx, &count, "SELECT count(*) FROM convenience_vouchers")
 	if err != nil {
 		return 0, nil
 	}
@@ -117,7 +117,7 @@ func (c *VoucherRepository) FindVoucherByInputAndOutputIndex(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 ) (*model.ConvenienceVoucher, error) {
 
-	query := `SELECT * FROM vouchers WHERE input_index = $1 and output_index = $2 LIMIT 1`
+	query := `SELECT * FROM convenience_vouchers WHERE input_index = $1 and output_index = $2 LIMIT 1`
 
 	stmt, err := c.Db.Preparex(query)
 	if err != nil {
@@ -142,7 +142,7 @@ func (c *VoucherRepository) UpdateExecuted(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 	executedValue bool,
 ) error {
-	query := `UPDATE vouchers SET executed = $1 WHERE input_index = $2 and output_index = $3`
+	query := `UPDATE convenience_vouchers SET executed = $1 WHERE input_index = $2 and output_index = $3`
 	_, err := c.Db.ExecContext(ctx, query, executedValue, inputIndex, outputIndex)
 	if err != nil {
 		return err
@@ -154,7 +154,7 @@ func (c *VoucherRepository) Count(
 	ctx context.Context,
 	filter []*model.ConvenienceFilter,
 ) (uint64, error) {
-	query := `SELECT count(*) FROM vouchers `
+	query := `SELECT count(*) FROM convenience_vouchers `
 	where, args, _, err := transformToQuery(filter)
 	if err != nil {
 		return 0, err
@@ -186,7 +186,7 @@ func (c *VoucherRepository) FindAllVouchers(
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT * FROM vouchers `
+	query := `SELECT * FROM convenience_vouchers `
 	where, args, argsCount, err := transformToQuery(filter)
 	if err != nil {
 		return nil, err
