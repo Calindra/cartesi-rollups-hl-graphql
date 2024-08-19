@@ -54,6 +54,7 @@ func (s *VoucherRepositorySuite) TestFindVoucher() {
 		InputIndex:  1,
 		OutputIndex: 2,
 		Executed:    false,
+		AppContract: common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
 	})
 	s.NoError(err)
 	voucher, err := s.repository.FindVoucherByInputAndOutputIndex(ctx, 1, 2)
@@ -64,6 +65,7 @@ func (s *VoucherRepositorySuite) TestFindVoucher() {
 	s.Equal(1, int(voucher.InputIndex))
 	s.Equal(2, int(voucher.OutputIndex))
 	s.Equal(false, voucher.Executed)
+	s.Equal("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", voucher.AppContract.Hex())
 }
 
 func (s *VoucherRepositorySuite) TestFindVoucherExecuted() {

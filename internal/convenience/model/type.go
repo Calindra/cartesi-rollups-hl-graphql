@@ -27,9 +27,10 @@ const (
 )
 
 type ConvenienceNotice struct {
-	Payload     string `db:"payload"`
-	InputIndex  uint64 `db:"input_index"`
-	OutputIndex uint64 `db:"output_index"`
+	Payload     string         `db:"payload"`
+	InputIndex  uint64         `db:"input_index"`
+	OutputIndex uint64         `db:"output_index"`
+	AppContract common.Address `db:"app_contract"`
 }
 
 // Voucher metadata type
@@ -39,6 +40,7 @@ type ConvenienceVoucher struct {
 	InputIndex  uint64         `db:"input_index"`
 	OutputIndex uint64         `db:"output_index"`
 	Executed    bool           `db:"executed"`
+	AppContract common.Address `db:"app_contract"`
 
 	// Proof we can fetch from the original GraphQL
 
@@ -86,9 +88,10 @@ type Input interface{}
 
 // Rollups report type.
 type Report struct {
-	Index      int
-	InputIndex int
-	Payload    []byte
+	Index       int
+	InputIndex  int
+	Payload     []byte
+	AppContract common.Address
 }
 
 // Rollups advance input type.

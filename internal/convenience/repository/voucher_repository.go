@@ -27,15 +27,17 @@ type voucherRow struct {
 	InputIndex  uint64 `db:"input_index"`
 	OutputIndex uint64 `db:"output_index"`
 	Executed    bool   `db:"executed"`
+	AppContract string `db:"app_contract"`
 }
 
 func (c *VoucherRepository) CreateTables() error {
-	schema := `CREATE TABLE IF NOT EXISTS vouchers (
+	schema := `CREATE TABLE IF NOT EXISTS convenience_vouchers (
 		destination text,
 		payload 	text,
 		executed	BOOLEAN,
 		input_index  integer,
 		output_index integer,
+		app_contract    text,
 		PRIMARY KEY (input_index, output_index));`
 
 	// execute a query on the server
@@ -46,12 +48,13 @@ func (c *VoucherRepository) CreateTables() error {
 func (c *VoucherRepository) CreateVoucher(
 	ctx context.Context, voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
-	insertVoucher := `INSERT INTO vouchers (
+	insertVoucher := `INSERT INTO convenience_vouchers (
 		destination,
 		payload,
 		executed,
 		input_index,
-		output_index) VALUES ($1, $2, $3, $4, $5)`
+		output_index,
+		app_contract) VALUES ($1, $2, $3, $4, $5, $6)`
 
 	exec := DBExecutor{&c.Db}
 
@@ -63,9 +66,10 @@ func (c *VoucherRepository) CreateVoucher(
 		voucher.Executed,
 		voucher.InputIndex,
 		voucher.OutputIndex,
+		voucher.AppContract.Hex(),
 	)
 	if err != nil {
-		slog.Error("Error creating vouchers", "Error", err)
+		slog.Error("Error creating convenience_vouchers", "Error", err)
 		return nil, err
 	}
 	return voucher, nil
@@ -74,7 +78,7 @@ func (c *VoucherRepository) CreateVoucher(
 func (c *VoucherRepository) UpdateVoucher(
 	ctx context.Context, voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
-	updateVoucher := `UPDATE vouchers SET 
+	updateVoucher := `UPDATE convenience_vouchers SET 
 		destination = $1,
 		payload = $2,
 		executed = $3
@@ -102,7 +106,7 @@ func (c *VoucherRepository) VoucherCount(
 	ctx context.Context,
 ) (uint64, error) {
 	var count int
-	err := c.Db.GetContext(ctx, &count, "SELECT count(*) FROM vouchers")
+	err := c.Db.GetContext(ctx, &count, "SELECT count(*) FROM convenience_vouchers")
 	if err != nil {
 		return 0, nil
 	}
@@ -113,7 +117,7 @@ func (c *VoucherRepository) FindVoucherByInputAndOutputIndex(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 ) (*model.ConvenienceVoucher, error) {
 
-	query := `SELECT * FROM vouchers WHERE input_index = $1 and output_index = $2 LIMIT 1`
+	query := `SELECT * FROM convenience_vouchers WHERE input_index = $1 and output_index = $2 LIMIT 1`
 
 	stmt, err := c.Db.Preparex(query)
 	if err != nil {
@@ -138,7 +142,7 @@ func (c *VoucherRepository) UpdateExecuted(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 	executedValue bool,
 ) error {
-	query := `UPDATE vouchers SET executed = $1 WHERE input_index = $2 and output_index = $3`
+	query := `UPDATE convenience_vouchers SET executed = $1 WHERE input_index = $2 and output_index = $3`
 	_, err := c.Db.ExecContext(ctx, query, executedValue, inputIndex, outputIndex)
 	if err != nil {
 		return err
@@ -150,7 +154,7 @@ func (c *VoucherRepository) Count(
 	ctx context.Context,
 	filter []*model.ConvenienceFilter,
 ) (uint64, error) {
-	query := `SELECT count(*) FROM vouchers `
+	query := `SELECT count(*) FROM convenience_vouchers `
 	where, args, _, err := transformToQuery(filter)
 	if err != nil {
 		return 0, err
@@ -182,7 +186,7 @@ func (c *VoucherRepository) FindAllVouchers(
 	if err != nil {
 		return nil, err
 	}
-	query := `SELECT * FROM vouchers `
+	query := `SELECT * FROM convenience_vouchers `
 	where, args, argsCount, err := transformToQuery(filter)
 	if err != nil {
 		return nil, err
@@ -230,6 +234,7 @@ func (c *VoucherRepository) FindAllVouchers(
 
 func convertToConvenienceVoucher(row voucherRow) model.ConvenienceVoucher {
 	destinationAddress := common.HexToAddress(row.Destination)
+	appContract := common.HexToAddress(row.AppContract)
 
 	voucher := model.ConvenienceVoucher{
 		Destination: destinationAddress,
@@ -237,6 +242,7 @@ func convertToConvenienceVoucher(row voucherRow) model.ConvenienceVoucher {
 		InputIndex:  row.InputIndex,
 		OutputIndex: row.OutputIndex,
 		Executed:    row.Executed,
+		AppContract: appContract,
 	}
 
 	return voucher

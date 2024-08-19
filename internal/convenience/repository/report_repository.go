@@ -18,11 +18,19 @@ type ReportRepository struct {
 	Db *sqlx.DB
 }
 
+type reportRow struct {
+	Index       int    `db:"output_index"`
+	InputIndex  int    `db:"input_index"`
+	Payload     string `db:"payload"`
+	AppContract string `db:"app_contract"`
+}
+
 func (r *ReportRepository) CreateTables() error {
 	schema := `CREATE TABLE IF NOT EXISTS convenience_reports (
 		output_index	integer,
 		payload 		text,
 		input_index 	integer,
+		app_contract    text,
 		PRIMARY KEY (input_index, output_index));`
 	_, err := r.Db.Exec(schema)
 	if err == nil {
@@ -37,7 +45,8 @@ func (r *ReportRepository) Create(ctx context.Context, report cModel.Report) (cM
 	insertSql := `INSERT INTO convenience_reports (
 		output_index,
 		payload,
-		input_index) VALUES ($1, $2, $3)`
+		input_index,
+		app_contract) VALUES ($1, $2, $3, $4)`
 
 	exec := DBExecutor{r.Db}
 	_, err := exec.ExecContext(
@@ -46,6 +55,7 @@ func (r *ReportRepository) Create(ctx context.Context, report cModel.Report) (cM
 		report.Index,
 		common.Bytes2Hex(report.Payload),
 		report.InputIndex,
+		report.AppContract.Hex(),
 	)
 
 	if err != nil {
@@ -183,7 +193,7 @@ func (c *ReportRepository) FindAll(
 		return nil, err
 	}
 
-	query := `SELECT input_index, output_index, payload FROM convenience_reports `
+	query := `SELECT input_index, output_index, payload, app_contract FROM convenience_reports `
 	where, args, argsCount, err := transformToReportQuery(filter)
 	if err != nil {
 		slog.Error("database error", "err", err)
@@ -209,30 +219,17 @@ func (c *ReportRepository) FindAll(
 	}
 	defer stmt.Close()
 
-	var reports []cModel.Report
-	rows, err := stmt.QueryxContext(ctx, args...)
+	var rows []reportRow
+	err = stmt.SelectContext(ctx, &rows, args...)
+
 	if err != nil {
+		slog.Error("Find all error", "error", err)
 		return nil, err
 	}
-	defer rows.Close()
+	reports := make([]cModel.Report, len(rows))
 
-	for rows.Next() {
-		var payload string
-		var inputIndex int
-		var outputIndex int
-		if err := rows.Scan(&inputIndex, &outputIndex, &payload); err != nil {
-			return nil, err
-		}
-		report := &cModel.Report{
-			InputIndex: inputIndex,
-			Index:      outputIndex,
-			Payload:    common.Hex2Bytes(payload),
-		}
-		reports = append(reports, *report)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+	for i, row := range rows {
+		reports[i] = parseReportRow(row)
 	}
 
 	pageResult := &commons.PageResult[cModel.Report]{
@@ -276,4 +273,13 @@ func transformToReportQuery(
 	}
 	query += strings.Join(where, " and ")
 	return query, args, count, nil
+}
+
+func parseReportRow(row reportRow) cModel.Report {
+	return cModel.Report{
+		Index:       row.Index,
+		InputIndex:  row.InputIndex,
+		Payload:     common.Hex2Bytes(row.Payload),
+		AppContract: common.HexToAddress(row.AppContract),
+	}
 }
