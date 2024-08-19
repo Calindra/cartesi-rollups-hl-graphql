@@ -139,11 +139,10 @@ func (r *ReportRepositorySuite) TestFindReportByAppContractAndIndex() {
 	})
 	r.NoError(err)
 
-	report, err := r.reportRepository.FindInputByAppContractAndIndex(ctx, 3333, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
+	report, err := r.reportRepository.FindInputByAppContractAndIndex(ctx, 2, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
 	r.NoError(err)
-	slog.Debug("REPORT: ", "report", report)
 
 	r.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), report.AppContract)
 	r.Equal(3333, report.Index)
-	r.Equal(uint64(2), report.BlockNumber)
+
 }

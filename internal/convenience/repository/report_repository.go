@@ -125,6 +125,36 @@ func (r *ReportRepository) FindByInputAndOutputIndex(
 	return nil, nil
 }
 
+func (r *ReportRepository) FindInputByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*cModel.Report, error) {
+
+	query := `SELECT 
+		input_index, 
+		output_index, 
+		payload, 
+		app_contract FROM convenience_reports WHERE input_index = $1 AND app_contract = $2`
+
+	res, err := r.Db.QueryxContext(
+		ctx,
+		query,
+		uint64(index),
+		appContract.Hex(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	if res.Next() {
+		report, err := parseReport(res)
+		if err != nil {
+			return nil, err
+		}
+		return report, nil
+	}
+	return nil, nil
+}
+
 func (c *ReportRepository) Count(
 	ctx context.Context,
 	filter []*cModel.ConvenienceFilter,
@@ -282,4 +312,25 @@ func parseReportRow(row reportRow) cModel.Report {
 		Payload:     common.Hex2Bytes(row.Payload),
 		AppContract: common.HexToAddress(row.AppContract),
 	}
+}
+
+func parseReport(res *sqlx.Rows) (*cModel.Report, error) {
+	var (
+		report      cModel.Report
+		payload     string
+		appContract string
+	)
+	err := res.Scan(
+		&report.InputIndex,
+		&report.Index,
+		&payload,
+		&appContract,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	report.Payload = common.Hex2Bytes(payload)
+	report.AppContract = common.HexToAddress(appContract)
+	return &report, nil
 }
