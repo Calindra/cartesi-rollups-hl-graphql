@@ -267,35 +267,40 @@ ALTER TABLE ONLY public.reports
     ADD CONSTRAINT reports_input_index_fkey FOREIGN KEY (input_index) REFERENCES public.inputs(index);
 
 
-CREATE TABLE IF NOT EXISTS public.vouchers (
+CREATE TABLE IF NOT EXISTS public.convenience_vouchers (
 		destination text,
 		payload 	text,
 		executed	BOOLEAN,
 		input_index  integer,
 		output_index integer);
 
-ALTER TABLE public.vouchers OWNER TO myuser;
+ALTER TABLE public.convenience_vouchers OWNER TO myuser;
 
-ALTER TABLE ONLY public.vouchers
+ALTER TABLE ONLY public.convenience_vouchers
     ADD CONSTRAINT vouchers_pkey PRIMARY KEY (input_index, output_index);
 
+ALTER TABLE public.convenience_vouchers
+ADD COLUMN app_contract text;
 
-INSERT INTO public.vouchers VALUES ('OX1223', 'OX1343', false, 1, 1);
-INSERT INTO public.vouchers VALUES ('OX1223', 'OX1343', false, 2, 2);
 
-CREATE TABLE IF NOT EXISTS public.notices (
+INSERT INTO public.convenience_vouchers VALUES ('OX1223', 'OX1343', false, 1, 1, '0XFF22');
+INSERT INTO public.convenience_vouchers VALUES ('OX1223', 'OX1343', false, 2, 2, '0X22FF');
+
+CREATE TABLE IF NOT EXISTS public.convenience_notices (
 		payload 		text,
 		input_index		integer,
 		output_index	integer);
 
-ALTER TABLE public.notices OWNER TO myuser;
+ALTER TABLE public.convenience_notices OWNER TO myuser;
 
-ALTER TABLE ONLY public.notices
+ALTER TABLE ONLY public.convenience_notices
     ADD CONSTRAINT notices_pkey PRIMARY KEY (input_index, output_index);
 
+ALTER TABLE public.convenience_notices
+ADD COLUMN app_contract text;
 
-INSERT INTO public.notices VALUES ('OX1223', 1, 1);
-INSERT INTO public.notices VALUES ('OX1223', 2, 2);
+INSERT INTO public.convenience_notices VALUES ('OX1223', 1, 1, '0XFF22');
+INSERT INTO public.convenience_notices VALUES ('OX1223', 2, 2, '0X22FF');
 
 -- CREATE TABLE IF NOT EXISTS public.convenience_inputs (
 -- 		id 				integer,
