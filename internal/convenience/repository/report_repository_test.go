@@ -139,7 +139,7 @@ func (r *ReportRepositorySuite) TestFindReportByAppContractAndIndex() {
 	})
 	r.NoError(err)
 
-	report, err := r.reportRepository.FindInputByAppContractAndIndex(ctx, 2, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
+	report, err := r.reportRepository.FindReportByAppContractAndIndex(ctx, 2, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
 	r.NoError(err)
 
 	r.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), report.AppContract)

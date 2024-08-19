@@ -125,7 +125,7 @@ func (r *ReportRepository) FindByInputAndOutputIndex(
 	return nil, nil
 }
 
-func (r *ReportRepository) FindInputByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*cModel.Report, error) {
+func (r *ReportRepository) FindReportByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*cModel.Report, error) {
 
 	query := `SELECT 
 		input_index, 
