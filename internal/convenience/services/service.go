@@ -95,10 +95,8 @@ func (s *ConvenienceService) CreateReport(
 	ctx context.Context,
 	report *model.Report,
 ) (*model.Report, error) {
-	reportInDb, err := s.reportRepository.FindByInputAndOutputIndex(ctx,
-		uint64(report.InputIndex),
-		uint64(report.Index),
-	)
+	reportInDb, err := s.reportRepository.FindReportByAppContractAndIndex(ctx, report.InputIndex, report.AppContract)
+
 	if err != nil {
 		return nil, err
 	}
