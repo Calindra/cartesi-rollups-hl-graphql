@@ -7,6 +7,7 @@ import (
 
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
@@ -50,6 +51,7 @@ func (s *NoticeRepositorySuite) TestFindByInputAndOutputIndex() {
 		Payload:     "0x0011",
 		InputIndex:  1,
 		OutputIndex: 2,
+		AppContract: common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
 	})
 	s.NoError(err)
 	notice, err := s.repository.FindByInputAndOutputIndex(ctx, 1, 2)
@@ -57,6 +59,7 @@ func (s *NoticeRepositorySuite) TestFindByInputAndOutputIndex() {
 	s.Equal("0x0011", notice.Payload)
 	s.Equal(1, int(notice.InputIndex))
 	s.Equal(2, int(notice.OutputIndex))
+	s.Equal("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", notice.AppContract.Hex())
 }
 
 func (s *NoticeRepositorySuite) TestCountNotices() {
