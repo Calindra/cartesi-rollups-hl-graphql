@@ -7,11 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/adapter"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/decoder"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type Synchronizer struct {
@@ -72,15 +70,14 @@ func (x *Synchronizer) VoucherPolling(ctx context.Context) error {
 					voucherIds,
 					fmt.Sprintf("%d:%d", inputIndex, outputIndex),
 				)
-				adapted := adapter.ConvertVoucherPayloadToV2(
-					edge.Node.Payload[2:],
-				)
-				err := x.decoder.HandleOutput(ctx,
-					common.HexToAddress(edge.Node.Destination),
-					adapted,
-					uint64(inputIndex),
-					uint64(outputIndex),
-				)
+
+				processOutputData := model.ProcessOutputData{
+					OutputIndex: uint64(outputIndex),
+					InputIndex:  uint64(inputIndex),
+					Payload:     edge.Node.Payload,
+					Destination: edge.Node.Destination,
+				}
+				err := x.decoder.HandleOutputV2(ctx, processOutputData)
 				if err != nil {
 					return err
 				}

@@ -43,20 +43,6 @@ func (o *OutputDecoder) HandleOutput(
 	// 0xc258d6e5 for Notice
 	// 0xef615e2f for Vouchers
 
-	// input := &model.InputEdge{
-	// 	Node: struct {
-	// 		Index int    `json:"index"`
-	// 		Blob  string `json:"blob"`
-	// 	}{
-	// 		Blob: payload,
-	// 	},
-	// }
-	// convertedInput, err := o.GetConvertedInput(*input)
-	// if err != nil {
-	// 	slog.Error("Failed to get converted:", "err", err)
-	// 	return fmt.Errorf("error getting converted input: %w", err)
-	// }
-
 	if payload[2:10] == model.VOUCHER_SELECTOR {
 		_, err := o.convenienceService.CreateVoucher(ctx, &model.ConvenienceVoucher{
 			Destination: destination,
@@ -64,7 +50,6 @@ func (o *OutputDecoder) HandleOutput(
 			Executed:    false,
 			InputIndex:  inputIndex,
 			OutputIndex: outputIndex,
-			AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 		})
 		return err
 	} else {
@@ -72,7 +57,6 @@ func (o *OutputDecoder) HandleOutput(
 			Payload:     adapter.RemoveSelector(payload),
 			InputIndex:  inputIndex,
 			OutputIndex: outputIndex,
-			AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 		})
 		return err
 	}
