@@ -186,6 +186,32 @@ func (c *NoticeRepository) FindByInputAndOutputIndex(
 	return nil, nil
 }
 
+func (c *NoticeRepository) FindNoticeByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*model.ConvenienceNotice, error) {
+
+	query := `SELECT * FROM convenience_notices WHERE input_index = $1 AND app_contract = $2`
+
+	res, err := c.Db.QueryxContext(
+		ctx,
+		query,
+		uint64(index),
+		appContract.Hex(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	if res.Next() {
+		notice, err := parseNotice(res)
+		if err != nil {
+			return nil, err
+		}
+		return notice, nil
+	}
+	return nil, nil
+}
+
 func transformToNoticeQuery(
 	filter []*model.ConvenienceFilter,
 ) (string, []interface{}, int, error) {
@@ -233,7 +259,6 @@ func parseNotice(res *sqlx.Rows) (*model.ConvenienceNotice, error) {
 	}
 
 	notice.AppContract = common.HexToAddress(appContract)
-
 	return &notice, nil
 }
 

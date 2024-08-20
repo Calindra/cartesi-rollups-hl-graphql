@@ -152,7 +152,7 @@ func (s *NoticeRepositorySuite) TestFindReportByAppContractAndIndex() {
 	_, err = s.repository.Create(ctx, &model.ConvenienceNotice{
 		Payload:     "0xFF22",
 		InputIndex:  2,
-		OutputIndex: 2,
+		OutputIndex: 3,
 		AppContract: common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
 	})
 	s.NoError(err)
@@ -161,5 +161,7 @@ func (s *NoticeRepositorySuite) TestFindReportByAppContractAndIndex() {
 	s.NoError(err)
 
 	s.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), report.AppContract)
-	s.Equal(3333, report.Index)
+	s.Equal("0xFF22", report.Payload)
+	s.Equal(uint64(2), report.InputIndex)
+	s.Equal(uint64(3), report.OutputIndex)
 }
