@@ -139,7 +139,7 @@ func (s *NoticeRepositorySuite) TestNoticePagination() {
 	s.Equal(19, int(notices.Rows[len(notices.Rows)-1].InputIndex))
 }
 
-func (s *NoticeRepositorySuite) TestFindReportByAppContractAndIndex() {
+func (s *NoticeRepositorySuite) TestFindNoticeByAppContractAndIndex() {
 	ctx := context.Background()
 	_, err := s.repository.Create(ctx, &model.ConvenienceNotice{
 		Payload:     "0x0011",
