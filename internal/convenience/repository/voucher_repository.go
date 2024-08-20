@@ -232,6 +232,32 @@ func (c *VoucherRepository) FindAllVouchers(
 	return pageResult, nil
 }
 
+func (c *VoucherRepository) FindVoucherByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*model.ConvenienceVoucher, error) {
+
+	query := `SELECT * FROM convenience_vouchers WHERE input_index = $1 AND app_contract = $2`
+
+	res, err := c.Db.QueryxContext(
+		ctx,
+		query,
+		uint64(index),
+		appContract.Hex(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+
+	if res.Next() {
+		voucher, err := parseVoucher(res)
+		if err != nil {
+			return nil, err
+		}
+		return voucher, nil
+	}
+	return nil, nil
+}
+
 func convertToConvenienceVoucher(row voucherRow) model.ConvenienceVoucher {
 	destinationAddress := common.HexToAddress(row.Destination)
 	appContract := common.HexToAddress(row.AppContract)
@@ -299,4 +325,27 @@ func transformToQuery(
 	query += strings.Join(where, " and ")
 	slog.Debug("Query", "query", query, "args", args)
 	return query, args, count, nil
+}
+
+func parseVoucher(res *sqlx.Rows) (*model.ConvenienceVoucher, error) {
+	var (
+		voucher     model.ConvenienceVoucher
+		appContract string
+		destination string
+	)
+	err := res.Scan(
+		&destination,
+		&voucher.Payload,
+		&voucher.Executed,
+		&voucher.InputIndex,
+		&voucher.OutputIndex,
+		&appContract,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	voucher.AppContract = common.HexToAddress(appContract)
+	voucher.Destination = common.HexToAddress(destination)
+	return &voucher, nil
 }
