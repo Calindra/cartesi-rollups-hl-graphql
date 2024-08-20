@@ -131,7 +131,7 @@ func (x GraphileSynchronizer) handleGraphileResponse(ctx context.Context, output
 		processOutputData := model.ProcessOutputData{
 			OutputIndex: uint64(outputIndex),
 			InputIndex:  uint64(inputIndex),
-			Payload:     output.Node.Blob[2:],
+			Payload:     output.Node.Blob,
 			Destination: output.Node.Blob,
 		}
 
