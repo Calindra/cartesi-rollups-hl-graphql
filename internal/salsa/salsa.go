@@ -10,6 +10,8 @@ import (
 	"os/exec"
 )
 
+const filePermission = 0755
+
 type SalsaWorker struct {
 	Address string
 }
@@ -63,7 +65,7 @@ func (w SalsaWorker) Start(ctx context.Context, ready chan<- struct{}) error {
 	}
 
 	// Dá permissão de execução ao arquivo temporário
-	err := os.Chmod(tmpFile, 0755)
+	err := os.Chmod(tmpFile, filePermission)
 	if err != nil {
 		slog.Error("Error changing Salsa permissions: " + err.Error())
 		return err
