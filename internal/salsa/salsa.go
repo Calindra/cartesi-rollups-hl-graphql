@@ -54,7 +54,7 @@ func (w SalsaWorker) Start(ctx context.Context, ready chan<- struct{}) error {
 		_, err := downloadSalsa(url, tmpFile)
 
 		if err != nil {
-			slog.Error("Error downloading Salsa:", err)
+			slog.Error("Error downloading Salsa: " + err.Error())
 			return err
 		}
 		slog.Info("Salsa downloaded.")
@@ -65,7 +65,7 @@ func (w SalsaWorker) Start(ctx context.Context, ready chan<- struct{}) error {
 	// Dá permissão de execução ao arquivo temporário
 	err := os.Chmod(tmpFile, 0755)
 	if err != nil {
-		slog.Error("Error changing Salsa permissions:", err)
+		slog.Error("Error changing Salsa permissions: " + err.Error())
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (w SalsaWorker) Start(ctx context.Context, ready chan<- struct{}) error {
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		slog.Error("Error executing Salsa:", err)
+		slog.Error("Error executing Salsa: " + err.Error())
 		return err
 	}
 
