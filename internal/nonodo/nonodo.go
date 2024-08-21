@@ -22,6 +22,7 @@ import (
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/rollup"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/salsa"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/sequencers/inputter"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/supervisor"
 	"github.com/ethereum/go-ethereum/common"
@@ -83,6 +84,8 @@ type NonodoOpts struct {
 
 	GraphileUrl         string
 	GraphileDisableSync bool
+	Salsa               bool
+	SalsaUrl            string
 }
 
 // Create the options struct with default values.
@@ -130,6 +133,8 @@ func NewNonodoOpts() NonodoOpts {
 		TimeoutAdvance:      defaultTimeout,
 		GraphileUrl:         graphileUrl,
 		GraphileDisableSync: false,
+		Salsa:               false,
+		SalsaUrl:            "127.0.0.1:5005",
 	}
 }
 
@@ -242,6 +247,13 @@ func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
 		Handler: e,
 	})
+
+	if opts.Salsa {
+		w.Workers = append(w.Workers, salsa.SalsaWorker{
+			Address: opts.SalsaUrl,
+		})
+	}
+
 	slog.Info("Listening", "port", opts.HttpPort)
 	return w
 }
