@@ -189,6 +189,16 @@ func (m *NonodoModel) AddNotice(payload []byte) (int, error) {
 	return m.state.addNotice(payload)
 }
 
+// Add a notice with input index to the model.
+// Return the notice index within the input.
+// Return an error if the state isn't advance.
+func (m *NonodoModel) AddNoticeWithInput(payload []byte, inputIndex int) (int, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.state.addNoticeWithInput(payload, inputIndex)
+}
+
 // Add a report to the model.
 // Return an error if the state isn't advance or inspect.
 func (m *NonodoModel) AddReport(payload []byte) error {

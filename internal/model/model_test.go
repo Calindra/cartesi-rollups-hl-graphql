@@ -1217,10 +1217,10 @@ func (s *ModelSuite) TestItGetsNoticesWithFilter() {
 		s.NoError(err)
 		_, err = s.m.FinishAndGetNext(true) // get
 		s.NoError(err)
-		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddNotice(s.payloads[j])
-			s.Nil(err)
-		}
+
+		_, err = s.m.AddNoticeWithInput(s.payloads[i], i)
+		s.Nil(err)
+
 		_, err = s.m.FinishAndGetNext(true) // finish
 		s.NoError(err)
 	}
@@ -1236,22 +1236,25 @@ func (s *ModelSuite) TestItGetsNoticesWithFilter() {
 	noticesPage, err := s.convenienceService.FindAllNotices(ctx, nil, nil, nil, nil, filters)
 	s.NoError(err)
 	notices := noticesPage.Rows
-	s.Len(notices, s.n)
-	for i := 0; i < s.n; i++ {
-		s.Equal(i, int(notices[i].OutputIndex))
-		s.Equal(inputIndex, int(notices[i].InputIndex))
-		s.Equal(s.payloads[i], common.Hex2Bytes(notices[i].Payload[2:]))
-	}
+	s.Len(notices, 1)
+
+	s.Equal(0, int(notices[0].OutputIndex))
+	s.Equal(inputIndex, int(notices[0].InputIndex))
+	s.Equal(s.payloads[1], common.Hex2Bytes(notices[0].Payload[2:]))
 }
 
 func (s *ModelSuite) TestItGetsNoticesWithOffset() {
 	defer s.teardown()
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true) // get
+
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+
+	_, err := s.m.FinishAndGetNext(true) // get
 	s.NoError(err)
 	for i := 0; i < s.n; i++ {
-		_, err := s.m.AddNotice(s.payloads[i])
+		_, err := s.m.AddNoticeWithInput(s.payloads[i], i)
 		s.Nil(err)
 	}
 	_, err = s.m.FinishAndGetNext(true) // finish
@@ -1269,12 +1272,14 @@ func (s *ModelSuite) TestItGetsNoticesWithOffset() {
 
 func (s *ModelSuite) TestItGetsNoticesWithLimit() {
 	defer s.teardown()
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true) // get
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+	_, err := s.m.FinishAndGetNext(true) // get
 	s.NoError(err)
 	for i := 0; i < s.n; i++ {
-		_, err := s.m.AddNotice(s.payloads[i])
+		_, err := s.m.AddNoticeWithInput(s.payloads[i], i)
 		s.Nil(err)
 	}
 	_, err = s.m.FinishAndGetNext(true) // finish

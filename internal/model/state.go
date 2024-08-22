@@ -27,6 +27,8 @@ type rollupsState interface {
 	// Add notice to current state.
 	addNotice(payload []byte) (int, error)
 
+	addNoticeWithInput(payload []byte, inputIndex int) (int, error)
+
 	// Add report to current state.
 	addReport(payload []byte) error
 
@@ -65,6 +67,10 @@ func (s *rollupsStateIdle) addVoucher(destination common.Address, payload []byte
 }
 
 func (s *rollupsStateIdle) addNotice(payload []byte) (int, error) {
+	return 0, fmt.Errorf("cannot add notice in current state")
+}
+
+func (s *rollupsStateIdle) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
 	return 0, fmt.Errorf("cannot add notice in current state")
 }
 
@@ -144,7 +150,7 @@ func sendAllInputNoticesToDecoder(decoder Decoder, inputIndex uint64, notices []
 			ctx,
 			common.Address{},
 			adapted,
-			inputIndex,
+			v.InputIndex,
 			v.OutputIndex,
 		)
 		if err != nil {
@@ -238,6 +244,18 @@ func (s *rollupsStateAdvance) addNotice(payload []byte) (int, error) {
 	return index, nil
 }
 
+func (s *rollupsStateAdvance) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
+	index := len(s.notices)
+	notice := cModel.ConvenienceNotice{
+		OutputIndex: uint64(index),
+		InputIndex:  uint64(inputIndex),
+		Payload:     common.Bytes2Hex(payload),
+	}
+	s.notices = append(s.notices, notice)
+	slog.Info("nonodo: added notice", "index", index, "payload", hexutil.Encode(payload))
+	return index, nil
+}
+
 func (s *rollupsStateAdvance) addReport(payload []byte) error {
 	index := len(s.reports)
 	report := cModel.Report{
@@ -311,6 +329,10 @@ func (s *rollupsStateInspect) addVoucher(destination common.Address, payload []b
 }
 
 func (s *rollupsStateInspect) addNotice(payload []byte) (int, error) {
+	return 0, fmt.Errorf("cannot add notice in current state")
+}
+
+func (s *rollupsStateInspect) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
 	return 0, fmt.Errorf("cannot add notice in current state")
 }
 
