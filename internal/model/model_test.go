@@ -369,14 +369,19 @@ func (s *ModelSuite) TestItComputesProcessedInputCount() {
 func (s *ModelSuite) TestItAddsVoucher() {
 	defer s.teardown()
 	// add input and get it
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true)
+	// err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
+	// s.NoError(err)
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+
+	_, err := s.m.FinishAndGetNext(true)
 	s.NoError(err)
 
 	// add vouchers
 	for i := 0; i < s.n; i++ {
-		index, err := s.m.AddVoucher(s.senders[i], s.payloads[i])
+		index, err := s.m.AddVoucherWithInput(s.senders[i], s.payloads[i], i)
 		s.Nil(err)
 		s.Equal(i, index)
 	}
@@ -396,7 +401,7 @@ func (s *ModelSuite) TestItAddsVoucher() {
 	s.NoError(err)
 	s.Len(vouchers.Rows, s.n)
 	for i := 0; i < s.n; i++ {
-		s.Equal(0, int(vouchers.Rows[i].InputIndex))
+		s.Equal(i, int(vouchers.Rows[i].InputIndex))
 		s.Equal(i, int(vouchers.Rows[i].OutputIndex))
 		s.Equal(s.senders[i], vouchers.Rows[i].Destination)
 		s.Equal(s.payloads[i], common.Hex2Bytes(vouchers.Rows[i].Payload[2:]))
@@ -658,13 +663,18 @@ func (s *ModelSuite) TestItFailsToGetAdvanceInput() {
 func (s *ModelSuite) TestItGetsVoucher() {
 	defer s.teardown()
 	ctx := context.Background()
-	for i := 0; i < s.n; i++ {
-		err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], i)
-		s.NoError(err)
-		_, err = s.m.FinishAndGetNext(true) // get
+	for z := 0; z < s.n; z++ {
+		idx := 3 * z
+		for i := 0; i < s.n; i++ {
+			id := idx + i
+			err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], id)
+			s.NoError(err)
+		}
+		_, err := s.m.FinishAndGetNext(true) // get
 		s.NoError(err)
 		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddVoucher(s.senders[j], s.payloads[j])
+			id := idx + j
+			_, err := s.m.AddVoucherWithInput(s.senders[j], s.payloads[j], id)
 			s.Nil(err)
 		}
 		_, err = s.m.FinishAndGetNext(true) // finish
@@ -672,11 +682,13 @@ func (s *ModelSuite) TestItGetsVoucher() {
 	}
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
+			inputIndex := 3*i + j
+			outputIndex := j
 			voucher, err := s.convenienceService.
-				FindVoucherByInputAndOutputIndex(ctx, uint64(i), uint64(j))
+				FindVoucherByInputAndOutputIndex(ctx, uint64(inputIndex), uint64(outputIndex))
 			s.NoError(err)
-			s.Equal(j, int(voucher.OutputIndex))
-			s.Equal(i, int(voucher.InputIndex))
+			s.Equal(outputIndex, int(voucher.OutputIndex))
+			s.Equal(inputIndex, int(voucher.InputIndex))
 			s.Equal(s.senders[j].Hex(), voucher.Destination.Hex())
 			s.Equal(s.payloads[j], common.Hex2Bytes(voucher.Payload[2:]))
 		}
@@ -1047,12 +1059,17 @@ func (s *ModelSuite) TestItGetsNoVouchers() {
 func (s *ModelSuite) TestItGetsVouchers() {
 	defer s.teardown()
 	for i := 0; i < s.n; i++ {
-		err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], i)
-		s.NoError(err)
-		_, err = s.m.FinishAndGetNext(true) // get
-		s.NoError(err)
+		idx := 3 * i
 		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddVoucher(s.senders[j], s.payloads[j])
+			id := idx + j
+			err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], id)
+			s.NoError(err)
+		}
+		_, err := s.m.FinishAndGetNext(true) // get
+		s.NoError(err)
+		for z := 0; z < s.n; z++ {
+			id := idx + z
+			_, err := s.m.AddVoucherWithInput(s.senders[z], s.payloads[z], id)
 			s.Nil(err)
 		}
 		_, err = s.m.FinishAndGetNext(true) // finish
@@ -1063,8 +1080,9 @@ func (s *ModelSuite) TestItGetsVouchers() {
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
 			idx := s.n*i + j
+			id := (3 * i) + (j)
 			s.Equal(j, int(vouchers[idx].OutputIndex))
-			s.Equal(i, int(vouchers[idx].InputIndex))
+			s.Equal(id, int(vouchers[idx].InputIndex))
 			s.Equal(s.senders[j], vouchers[idx].Destination)
 			s.Equal(s.payloads[j], common.Hex2Bytes(vouchers[idx].Payload[2:]))
 		}
@@ -1074,12 +1092,17 @@ func (s *ModelSuite) TestItGetsVouchers() {
 func (s *ModelSuite) TestItGetsVouchersWithFilter() {
 	defer s.teardown()
 	for i := 0; i < s.n; i++ {
-		err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], i)
-		s.NoError(err)
-		_, err = s.m.FinishAndGetNext(true) // get
-		s.NoError(err)
+		idx := 3 * i
 		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddVoucher(s.senders[j], s.payloads[j])
+			id := idx + j
+			err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], id)
+			s.NoError(err)
+		}
+		_, err := s.m.FinishAndGetNext(true) // get
+		s.NoError(err)
+		for z := 0; z < s.n; z++ {
+			id := idx + z
+			_, err := s.m.AddVoucherWithInput(s.senders[z], s.payloads[z], id)
 			s.Nil(err)
 		}
 		_, err = s.m.FinishAndGetNext(true) // finish
@@ -1097,23 +1120,26 @@ func (s *ModelSuite) TestItGetsVouchersWithFilter() {
 	vPage, err := s.convenienceService.FindAllVouchers(ctx, nil, nil, nil, nil, filters)
 	s.NoError(err)
 	vouchers := vPage.Rows
-	s.Len(vouchers, s.n)
-	for i := 0; i < s.n; i++ {
-		s.Equal(i, int(vouchers[i].OutputIndex))
-		s.Equal(inputIndex, int(vouchers[i].InputIndex))
-		s.Equal(s.senders[i], vouchers[i].Destination)
-		s.Equal(s.payloads[i], common.Hex2Bytes(vouchers[i].Payload[2:]))
-	}
+	voucherQtd := 1
+	s.Len(vouchers, voucherQtd)
+
+	s.Equal(1, int(vouchers[0].OutputIndex))
+	s.Equal(inputIndex, int(vouchers[0].InputIndex))
+	s.Equal(s.senders[1], vouchers[0].Destination)
+	s.Equal(s.payloads[1], common.Hex2Bytes(vouchers[0].Payload[2:]))
+
 }
 
 func (s *ModelSuite) TestItGetsVouchersWithOffset() {
 	defer s.teardown()
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true) // get
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+	_, err := s.m.FinishAndGetNext(true) // get
 	s.NoError(err)
 	for i := 0; i < s.n; i++ {
-		_, err := s.m.AddVoucher(s.senders[i], s.payloads[i])
+		_, err := s.m.AddVoucherWithInput(s.senders[i], s.payloads[i], i)
 		s.Nil(err)
 	}
 	_, err = s.m.FinishAndGetNext(true) // finish
@@ -1127,12 +1153,14 @@ func (s *ModelSuite) TestItGetsVouchersWithOffset() {
 
 func (s *ModelSuite) TestItGetsVouchersWithLimit() {
 	defer s.teardown()
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true) // get
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+	_, err := s.m.FinishAndGetNext(true) // get
 	s.NoError(err)
 	for i := 0; i < s.n; i++ {
-		_, err := s.m.AddVoucher(s.senders[i], s.payloads[i])
+		_, err := s.m.AddVoucherWithInput(s.senders[i], s.payloads[i], i)
 		s.Nil(err)
 	}
 	_, err = s.m.FinishAndGetNext(true) // finish

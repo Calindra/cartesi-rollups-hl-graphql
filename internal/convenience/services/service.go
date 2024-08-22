@@ -59,10 +59,11 @@ func (s *ConvenienceService) CreateVoucher(
 	voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
 
-	voucherInDb, err := s.voucherRepository.FindVoucherByInputAndOutputIndex(
-		ctx, voucher.InputIndex,
-		voucher.OutputIndex,
-	)
+	voucherInDb, err := s.voucherRepository.FindVoucherByAppContractAndIndex(ctx, int(voucher.InputIndex), voucher.AppContract)
+	// FindVoucherByInputAndOutputIndex(
+	// 	ctx, voucher.InputIndex,
+	// 	voucher.OutputIndex,
+	// )
 
 	if err != nil {
 		return nil, err

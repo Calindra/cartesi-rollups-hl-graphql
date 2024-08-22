@@ -24,6 +24,8 @@ type rollupsState interface {
 	// Add voucher to current state.
 	addVoucher(destination common.Address, payload []byte) (int, error)
 
+	addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error)
+
 	// Add notice to current state.
 	addNotice(payload []byte) (int, error)
 
@@ -63,6 +65,10 @@ func (s *rollupsStateIdle) finish(status cModel.CompletionStatus) error {
 }
 
 func (s *rollupsStateIdle) addVoucher(destination common.Address, payload []byte) (int, error) {
+	return 0, fmt.Errorf("cannot add voucher in idle state")
+}
+
+func (s *rollupsStateIdle) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
 	return 0, fmt.Errorf("cannot add voucher in idle state")
 }
 
@@ -126,7 +132,7 @@ func sendAllInputVouchersToDecoder(decoder Decoder, inputIndex uint64, vouchers 
 			ctx,
 			v.Destination,
 			adapted,
-			inputIndex,
+			v.InputIndex,
 			v.OutputIndex,
 		)
 		if err != nil {
@@ -232,6 +238,20 @@ func (s *rollupsStateAdvance) addVoucher(destination common.Address, payload []b
 	return index, nil
 }
 
+func (s *rollupsStateAdvance) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
+	index := len(s.vouchers)
+	voucher := cModel.ConvenienceVoucher{
+		OutputIndex: uint64(index),
+		InputIndex:  uint64(inputIndex),
+		Destination: destination,
+		Payload:     common.Bytes2Hex(payload),
+	}
+	s.vouchers = append(s.vouchers, voucher)
+	slog.Info("nonodo: added voucher", "index", index, "destination", destination,
+		"payload", hexutil.Encode(payload))
+	return index, nil
+}
+
 func (s *rollupsStateAdvance) addNotice(payload []byte) (int, error) {
 	index := len(s.notices)
 	notice := cModel.ConvenienceNotice{
@@ -325,6 +345,10 @@ func (s *rollupsStateInspect) finish(status cModel.CompletionStatus) error {
 }
 
 func (s *rollupsStateInspect) addVoucher(destination common.Address, payload []byte) (int, error) {
+	return 0, fmt.Errorf("cannot add voucher in inspect state")
+}
+
+func (s *rollupsStateInspect) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
 	return 0, fmt.Errorf("cannot add voucher in inspect state")
 }
 
