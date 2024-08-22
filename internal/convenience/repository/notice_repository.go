@@ -151,6 +151,7 @@ func (c *NoticeRepository) FindAllNotices(
 	for i, row := range rows {
 		notices[i] = parseRowNotice(row)
 	}
+
 	pageResult := &commons.PageResult[model.ConvenienceNotice]{
 		Rows:   notices,
 		Total:  total,

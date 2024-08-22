@@ -426,14 +426,16 @@ func (s *ModelSuite) TestItFailsToAddVoucherWhenIdle() {
 func (s *ModelSuite) TestItAddsNotice() {
 	defer s.teardown()
 	// add input and get it
-	err := s.m.AddAdvanceInput(s.senders[0], s.payloads[0], s.blockNumbers[0], s.timestamps[0], 0)
-	s.NoError(err)
-	_, err = s.m.FinishAndGetNext(true)
+	for j := 0; j < s.n; j++ {
+		err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], j)
+		s.NoError(err)
+	}
+	_, err := s.m.FinishAndGetNext(true)
 	s.NoError(err)
 
 	// add notices
 	for i := 0; i < s.n; i++ {
-		index, err := s.m.AddNotice(s.payloads[i])
+		index, err := s.m.AddNoticeWithInput(s.payloads[i], i)
 		s.Nil(err)
 		s.Equal(i, index)
 	}
@@ -453,7 +455,7 @@ func (s *ModelSuite) TestItAddsNotice() {
 	s.NoError(err)
 	s.Len(notices.Rows, s.n)
 	for i := 0; i < s.n; i++ {
-		s.Equal(0, int(notices.Rows[i].InputIndex))
+		s.Equal(i, int(notices.Rows[i].InputIndex))
 		s.Equal(i, int(notices.Rows[i].OutputIndex))
 		s.Equal(s.payloads[i], common.Hex2Bytes(notices.Rows[i].Payload[2:]))
 	}
@@ -711,13 +713,18 @@ func (s *ModelSuite) TestItFailsToGetVoucherFromExistingInput() {
 
 func (s *ModelSuite) TestItGetsNotice() {
 	defer s.teardown()
-	for i := 0; i < s.n; i++ {
-		err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], i)
-		s.NoError(err)
-		_, err = s.m.FinishAndGetNext(true) // get
+	for z := 0; z < s.n; z++ {
+		idx := 3 * z
+		for i := 0; i < s.n; i++ {
+			id := idx + i
+			err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], id)
+			s.NoError(err)
+		}
+		_, err := s.m.FinishAndGetNext(true) // get
 		s.NoError(err)
 		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddNotice(s.payloads[j])
+			id := idx + j
+			_, err := s.m.AddNoticeWithInput(s.payloads[j], id)
 			s.Nil(err)
 		}
 		_, err = s.m.FinishAndGetNext(true) // finish
@@ -725,9 +732,11 @@ func (s *ModelSuite) TestItGetsNotice() {
 	}
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
-			notice := s.getNotice(i, j)
-			s.Equal(j, int(notice.OutputIndex))
-			s.Equal(i, int(notice.InputIndex))
+			inputIndex := 3*i + j
+			outputIndex := j
+			notice := s.getNotice(inputIndex, outputIndex)
+			s.Equal(outputIndex, int(notice.OutputIndex))
+			s.Equal(inputIndex, int(notice.InputIndex))
 			s.Equal(s.payloads[j], common.Hex2Bytes(notice.Payload[2:]))
 		}
 	}
@@ -1184,12 +1193,17 @@ func (s *ModelSuite) TestItGetsNoNotices() {
 func (s *ModelSuite) TestItGetsNotices() {
 	defer s.teardown()
 	for i := 0; i < s.n; i++ {
-		err := s.m.AddAdvanceInput(s.senders[i], s.payloads[i], s.blockNumbers[i], s.timestamps[i], i)
-		s.NoError(err)
-		_, err = s.m.FinishAndGetNext(true) // get
-		s.NoError(err)
+		idx := 3 * i
 		for j := 0; j < s.n; j++ {
-			_, err := s.m.AddNotice(s.payloads[j])
+			id := idx + j
+			err := s.m.AddAdvanceInput(s.senders[j], s.payloads[j], s.blockNumbers[j], s.timestamps[j], id)
+			s.NoError(err)
+		}
+		_, err := s.m.FinishAndGetNext(true) // get
+		s.NoError(err)
+		for z := 0; z < s.n; z++ {
+			id := idx + z
+			_, err := s.m.AddNoticeWithInput(s.payloads[z], id)
 			s.Nil(err)
 		}
 		_, err = s.m.FinishAndGetNext(true) // finish
@@ -1203,8 +1217,9 @@ func (s *ModelSuite) TestItGetsNotices() {
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
 			idx := s.n*i + j
+			id := (3 * i) + (j)
 			s.Equal(j, int(notices[idx].OutputIndex))
-			s.Equal(i, int(notices[idx].InputIndex))
+			s.Equal(id, int(notices[idx].InputIndex))
 			s.Equal(s.payloads[j], common.Hex2Bytes(notices[idx].Payload[2:]))
 		}
 	}

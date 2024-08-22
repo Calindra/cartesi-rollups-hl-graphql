@@ -41,8 +41,8 @@ func (s *ConvenienceService) CreateNotice(
 	ctx context.Context,
 	notice *model.ConvenienceNotice,
 ) (*model.ConvenienceNotice, error) {
-	noticeInDb, err := s.noticeRepository.FindByInputAndOutputIndex(
-		ctx, notice.InputIndex, notice.OutputIndex,
+	noticeInDb, err := s.noticeRepository.FindNoticeByAppContractAndIndex(
+		ctx, int(notice.InputIndex), notice.AppContract,
 	)
 	if err != nil {
 		return nil, err
