@@ -85,7 +85,8 @@ func (s *ConvenienceService) CreateInput(
 	if inputInDb != nil {
 		return s.inputRepository.Update(ctx, *input)
 	}
-	return s.inputRepository.Create(ctx, *input)
+
+	return s.inputRepository.RawCreate(ctx, *input)
 }
 
 func (s *ConvenienceService) CreateReport(

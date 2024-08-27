@@ -301,7 +301,7 @@ func (s *ConvenienceServiceSuite) TestCreateInputIdempotencyWithoutAppContract()
 		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 	})
 	s.NoError(err)
-	count, err = s.inputRepository.Count(ctx, nil)
+	otherCount, err := s.inputRepository.Count(ctx, nil)
 	s.NoError(err)
-	s.Equal(1, int(count))
+	s.Equal(2, int(otherCount))
 }
