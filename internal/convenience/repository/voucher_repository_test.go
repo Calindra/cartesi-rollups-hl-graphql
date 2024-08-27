@@ -224,11 +224,11 @@ func (s *VoucherRepositorySuite) TestFindVoucherByAppContractAndIndex() {
 	})
 	s.NoError(err)
 
-	report, err := s.repository.FindVoucherByAppContractAndIndex(ctx, 1, common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))
+	voucher, err := s.repository.FindVoucherByAppContractAndIndex(ctx, 1, common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))
 	s.NoError(err)
 
-	s.Equal(common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"), report.AppContract)
-	s.Equal("0x0011", report.Payload)
-	s.Equal(uint64(1), report.InputIndex)
-	s.Equal(uint64(4), report.OutputIndex)
+	s.Equal(common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"), voucher.AppContract)
+	s.Equal("0x0011", voucher.Payload)
+	s.Equal(uint64(1), voucher.InputIndex)
+	s.Equal(uint64(4), voucher.OutputIndex)
 }
