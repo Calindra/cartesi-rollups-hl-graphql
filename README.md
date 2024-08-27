@@ -19,7 +19,12 @@ curl \
 
 ## Connecting to PostGresDB and Graphile locally
 
-Start a PostGres instance locally, "cd" to db folder and use docker-compose.yml example.
+Start a PostGres instance locally using docker-compose.yml example.
+
+```sh
+docker compose up --wait postgraphile
+```
+
 Set PostGres connection details using environment variables
 
 ```env
