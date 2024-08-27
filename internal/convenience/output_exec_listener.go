@@ -16,7 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type VoucherExecListener struct {
+type OutputExecListener struct {
 	Provider           string
 	ApplicationAddress common.Address
 	EventName          string
@@ -29,8 +29,8 @@ func NewExecListener(
 	applicationAddress common.Address,
 	convenienceService *services.ConvenienceService,
 	fromBlock *big.Int,
-) VoucherExecListener {
-	return VoucherExecListener{
+) OutputExecListener {
+	return OutputExecListener{
 		FromBlock:          fromBlock,
 		ConvenienceService: convenienceService,
 		Provider:           provider,
@@ -40,7 +40,7 @@ func NewExecListener(
 }
 
 // on event callback
-func (x VoucherExecListener) OnEvent(
+func (x OutputExecListener) OnEvent(
 	eventValues []interface{},
 	timestamp,
 	blockNumber uint64,
@@ -75,11 +75,11 @@ func (x VoucherExecListener) OnEvent(
 }
 
 // String implements supervisor.Worker.
-func (x VoucherExecListener) String() string {
-	return "ExecListener"
+func (x OutputExecListener) String() string {
+	return "OutputExecListener"
 }
 
-func (x VoucherExecListener) Start(ctx context.Context, ready chan<- struct{}) error {
+func (x OutputExecListener) Start(ctx context.Context, ready chan<- struct{}) error {
 	var delay time.Duration = 5 * time.Second
 	slog.Info("Connecting to", "provider", x.Provider)
 
@@ -102,7 +102,7 @@ func (x VoucherExecListener) Start(ctx context.Context, ready chan<- struct{}) e
 	return x.WatchExecutions(ctx, client)
 }
 
-func (x *VoucherExecListener) ReadPastExecutions(ctx context.Context, client *ethclient.Client, contractABI abi.ABI, query ethereum.FilterQuery) error {
+func (x *OutputExecListener) ReadPastExecutions(ctx context.Context, client *ethclient.Client, contractABI abi.ABI, query ethereum.FilterQuery) error {
 	slog.Debug("ReadPastExecutions", "FromBlock", x.FromBlock)
 
 	// Retrieve logs for the specified block range
@@ -122,7 +122,7 @@ func (x *VoucherExecListener) ReadPastExecutions(ctx context.Context, client *et
 	return nil
 }
 
-func (x *VoucherExecListener) WatchExecutions(ctx context.Context, client *ethclient.Client) error {
+func (x *OutputExecListener) WatchExecutions(ctx context.Context, client *ethclient.Client) error {
 	// ABI of your contract
 	abi, err := contracts.ApplicationMetaData.GetAbi()
 	if err != nil {
@@ -195,8 +195,8 @@ func (x *VoucherExecListener) WatchExecutions(ctx context.Context, client *ethcl
 		}
 
 		if err != nil {
-			slog.Error("VoucherExecListener", "error", err)
-			slog.Info("VoucherExecListener reconnecting", "reconnectDelay", reconnectDelay)
+			slog.Error("OutputExecListener", "error", err)
+			slog.Info("OutputExecListener reconnecting", "reconnectDelay", reconnectDelay)
 			time.Sleep(reconnectDelay)
 		} else {
 			return nil
@@ -204,7 +204,7 @@ func (x *VoucherExecListener) WatchExecutions(ctx context.Context, client *ethcl
 	}
 }
 
-func (x *VoucherExecListener) HandleLog(
+func (x *OutputExecListener) HandleLog(
 	vLog types.Log,
 	client *ethclient.Client,
 	contractABI abi.ABI,
@@ -224,7 +224,7 @@ func (x *VoucherExecListener) HandleLog(
 	return nil
 }
 
-func (x *VoucherExecListener) GetEventData(
+func (x *OutputExecListener) GetEventData(
 	vLog types.Log,
 	client *ethclient.Client,
 	contractABI abi.ABI,
