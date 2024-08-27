@@ -3,6 +3,8 @@
 ![CI](https://github.com/Calindra/cartesi-rollups-hl-graphql/actions/workflows/ci.yaml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Calindra/cartesi-rollups-hl-graphql)](https://goreportcard.com/report/github.com/Calindra/cartesi-rollups-hl-graphql)
 
+[Motivation](https://governance.cartesi.io/t/convenience-layer-for-voucher-management-on-cartesi/401)
+
 Exposes the GraphQL reader API in the endpoint `http://127.0.0.1:8080/graphql`.
 You may access this address to use the GraphQL interactive playground in your web browser.
 You can also make POST requests directly to the GraphQL API.

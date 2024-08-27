@@ -33,7 +33,7 @@
         "graphile",
         "Graphile",
         "hexutil",
-        "Idempotency",
+        "idempotency",
         "initdb",
         "inputbox",
         "inputter",
