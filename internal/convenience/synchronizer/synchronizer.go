@@ -71,13 +71,13 @@ func (x *Synchronizer) VoucherPolling(ctx context.Context) error {
 					fmt.Sprintf("%d:%d", inputIndex, outputIndex),
 				)
 
-				processOutputData := model.ProcessOutputData{
+				outputData := model.ProcessOutputData{
 					OutputIndex: uint64(outputIndex),
 					InputIndex:  uint64(inputIndex),
 					Payload:     edge.Node.Payload,
 					Destination: edge.Node.Destination,
 				}
-				err := x.decoder.HandleOutputV2(ctx, processOutputData)
+				err := x.decoder.HandleOutputV2(ctx, outputData)
 				if err != nil {
 					return err
 				}
