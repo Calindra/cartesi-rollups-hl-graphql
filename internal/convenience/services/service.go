@@ -60,10 +60,6 @@ func (s *ConvenienceService) CreateVoucher(
 ) (*model.ConvenienceVoucher, error) {
 
 	voucherInDb, err := s.voucherRepository.FindVoucherByAppContractAndIndex(ctx, int(voucher.InputIndex), voucher.AppContract)
-	// FindVoucherByInputAndOutputIndex(
-	// 	ctx, voucher.InputIndex,
-	// 	voucher.OutputIndex,
-	// )
 
 	if err != nil {
 		return nil, err
@@ -107,7 +103,7 @@ func (s *ConvenienceService) CreateReport(
 			"inputIndex", report.InputIndex,
 			"outputIndex", report.Index,
 		)
-		return s.reportRepository.Update(ctx, *reportInDb)
+		return s.reportRepository.Update(ctx, *report)
 	}
 	reportCreated, err := s.reportRepository.Create(ctx, *report)
 	if err != nil {
