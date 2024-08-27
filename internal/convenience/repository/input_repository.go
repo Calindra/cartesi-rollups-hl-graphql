@@ -262,6 +262,8 @@ func (c *InputRepository) FindAll(
 	before *string,
 	filter []*model.ConvenienceFilter,
 ) (*commons.PageResult[model.AdvanceInput], error) {
+	param := ctx.Value(model.AppContractKey)
+	slog.Debug("Param received in FindAll:", "appContract", param)
 	total, err := c.Count(ctx, filter)
 	if err != nil {
 		slog.Error("database error", "err", err)

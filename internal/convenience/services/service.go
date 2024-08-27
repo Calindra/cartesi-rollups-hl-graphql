@@ -175,6 +175,8 @@ func (c *ConvenienceService) FindAllInputs(
 	before *string,
 	filter []*model.ConvenienceFilter,
 ) (*commons.PageResult[model.AdvanceInput], error) {
+	param := ctx.Value(model.AppContractKey)
+	slog.Debug("Param received in FindAllInputs:", "appContract", param, "ctx", ctx)
 	return c.inputRepository.FindAll(
 		ctx,
 		first,

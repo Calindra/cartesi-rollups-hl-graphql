@@ -7,8 +7,12 @@ package reader
 //go:generate go run github.com/99designs/gqlgen generate
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
 	nonodomodel "github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/graph"
@@ -28,11 +32,16 @@ func Register(
 		convenienceService,
 		adapter,
 	}
+
 	config := graph.Config{Resolvers: &resolver}
 	schema := graph.NewExecutableSchema(config)
 	graphqlHandler := handler.NewDefaultServer(schema)
 	playgroundHandler := playground.Handler("GraphQL", "/graphql")
 	e.POST("/graphql", func(c echo.Context) error {
+		appContract := c.QueryParam("appContract")
+		slog.Debug("PARAMS: ", "app_contract", appContract)
+		ctx := context.WithValue(c.Request().Context(), cModel.AppContractKey, appContract)
+		c.SetRequest(c.Request().WithContext(ctx))
 		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 		return nil
 	})
