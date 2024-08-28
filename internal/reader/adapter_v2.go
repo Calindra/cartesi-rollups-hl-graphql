@@ -198,6 +198,8 @@ func (a AdapterV2) GetInputs(
 	where *graphql.InputFilter) (*graphql.InputConnection, error) {
 
 	filters := []*convenience.ConvenienceFilter{}
+	param := ctx.Value(convenience.AppContractKey)
+	slog.Debug("Param received in adapter:", "appContract", param, "ctx", ctx)
 
 	inputs, err := a.convenienceService.FindAllInputs(
 		ctx,

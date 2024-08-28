@@ -8,6 +8,7 @@ import (
 	"context"
 	"log/slog"
 
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/graph"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 )
@@ -77,6 +78,8 @@ func (r *queryResolver) Report(ctx context.Context, reportIndex int, inputIndex 
 
 // Inputs is the resolver for the inputs field.
 func (r *queryResolver) Inputs(ctx context.Context, first *int, last *int, after *string, before *string, where *model.InputFilter) (*model.Connection[*model.Input], error) {
+	param := ctx.Value(cModel.AppContractKey)
+	slog.Debug("Param received in resolver:", "appContract", param)
 	return r.adapter.GetInputs(ctx, first, last, after, before, where)
 }
 
