@@ -309,6 +309,39 @@ func (s *InputRepositorySuite) TestCreateInputAndCheckAppContract() {
 	s.Equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", input2.AppContract.Hex())
 }
 
+func (s *InputRepositorySuite) TestFindInputByAppContractAndIndex() {
+	defer s.teardown()
+	ctx := context.Background()
+	_, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+		Index:          2222,
+		Status:         convenience.CompletionStatusUnprocessed,
+		MsgSender:      common.Address{},
+		Payload:        common.Hex2Bytes("0x1122"),
+		BlockNumber:    1,
+		BlockTimestamp: time.Now(),
+		AppContract:    common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	_, err = s.inputRepository.Create(ctx, convenience.AdvanceInput{
+		Index:          3333,
+		Status:         convenience.CompletionStatusUnprocessed,
+		MsgSender:      common.Address{},
+		Payload:        common.Hex2Bytes("0xFF22"),
+		BlockNumber:    2,
+		BlockTimestamp: time.Now(),
+		AppContract:    common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
+	})
+	s.NoError(err)
+
+	input, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, 3333, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
+	s.NoError(err)
+	slog.Debug("INPUT: ", "input", input)
+
+	s.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), input.AppContract)
+	s.Equal(3333, input.Index)
+	s.Equal(uint64(2), input.BlockNumber)
+}
+
 func (s *InputRepositorySuite) teardown() {
 	defer os.RemoveAll(s.tempDir)
 }

@@ -41,8 +41,8 @@ func (s *ConvenienceService) CreateNotice(
 	ctx context.Context,
 	notice *model.ConvenienceNotice,
 ) (*model.ConvenienceNotice, error) {
-	noticeInDb, err := s.noticeRepository.FindByInputAndOutputIndex(
-		ctx, notice.InputIndex, notice.OutputIndex,
+	noticeInDb, err := s.noticeRepository.FindNoticeByAppContractAndIndex(
+		ctx, int(notice.InputIndex), notice.AppContract,
 	)
 	if err != nil {
 		return nil, err
@@ -59,10 +59,7 @@ func (s *ConvenienceService) CreateVoucher(
 	voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
 
-	voucherInDb, err := s.voucherRepository.FindVoucherByInputAndOutputIndex(
-		ctx, voucher.InputIndex,
-		voucher.OutputIndex,
-	)
+	voucherInDb, err := s.voucherRepository.FindVoucherByAppContractAndIndex(ctx, int(voucher.InputIndex), voucher.AppContract)
 
 	if err != nil {
 		return nil, err
@@ -79,7 +76,7 @@ func (s *ConvenienceService) CreateInput(
 	ctx context.Context,
 	input *model.AdvanceInput,
 ) (*model.AdvanceInput, error) {
-	inputInDb, err := s.inputRepository.FindByIndex(ctx, input.Index)
+	inputInDb, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, input.Index, input.AppContract)
 
 	if err != nil {
 		return nil, err
@@ -88,17 +85,16 @@ func (s *ConvenienceService) CreateInput(
 	if inputInDb != nil {
 		return s.inputRepository.Update(ctx, *input)
 	}
-	return s.inputRepository.Create(ctx, *input)
+
+	return s.inputRepository.RawCreate(ctx, *input)
 }
 
 func (s *ConvenienceService) CreateReport(
 	ctx context.Context,
 	report *model.Report,
 ) (*model.Report, error) {
-	reportInDb, err := s.reportRepository.FindByInputAndOutputIndex(ctx,
-		uint64(report.InputIndex),
-		uint64(report.Index),
-	)
+	reportInDb, err := s.reportRepository.FindReportByAppContractAndIndex(ctx, report.InputIndex, report.AppContract)
+
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +104,7 @@ func (s *ConvenienceService) CreateReport(
 			"inputIndex", report.InputIndex,
 			"outputIndex", report.Index,
 		)
-		return s.reportRepository.Update(ctx, *reportInDb)
+		return s.reportRepository.Update(ctx, *report)
 	}
 	reportCreated, err := s.reportRepository.Create(ctx, *report)
 	if err != nil {

@@ -205,3 +205,30 @@ func (s *VoucherRepositorySuite) TestWrongAddress() {
 	}
 	s.Equal("wrong address value", err.Error())
 }
+
+func (s *VoucherRepositorySuite) TestFindVoucherByAppContractAndIndex() {
+	ctx := context.Background()
+	_, err := s.repository.CreateVoucher(ctx, &model.ConvenienceVoucher{
+		Payload:     "0x0011",
+		InputIndex:  1,
+		OutputIndex: 4,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+
+	_, err = s.repository.CreateVoucher(ctx, &model.ConvenienceVoucher{
+		Payload:     "0xFF22",
+		InputIndex:  2,
+		OutputIndex: 3,
+		AppContract: common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
+	})
+	s.NoError(err)
+
+	voucher, err := s.repository.FindVoucherByAppContractAndIndex(ctx, 1, common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))
+	s.NoError(err)
+
+	s.Equal(common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"), voucher.AppContract)
+	s.Equal("0x0011", voucher.Payload)
+	s.Equal(uint64(1), voucher.InputIndex)
+	s.Equal(uint64(4), voucher.OutputIndex)
+}

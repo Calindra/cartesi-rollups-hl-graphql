@@ -179,6 +179,13 @@ func (m *NonodoModel) AddVoucher(destination common.Address, payload []byte) (in
 	return m.state.addVoucher(destination, payload)
 }
 
+func (m *NonodoModel) AddVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.state.addVoucherWithInput(destination, payload, inputIndex)
+}
+
 // Add a notice to the model.
 // Return the notice index within the input.
 // Return an error if the state isn't advance.
@@ -187,6 +194,16 @@ func (m *NonodoModel) AddNotice(payload []byte) (int, error) {
 	defer m.mutex.Unlock()
 
 	return m.state.addNotice(payload)
+}
+
+// Add a notice with input index to the model.
+// Return the notice index within the input.
+// Return an error if the state isn't advance.
+func (m *NonodoModel) AddNoticeWithInput(payload []byte, inputIndex int) (int, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	return m.state.addNoticeWithInput(payload, inputIndex)
 }
 
 // Add a report to the model.

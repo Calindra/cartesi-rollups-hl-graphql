@@ -72,6 +72,10 @@ func (r *InputRepository) Create(ctx context.Context, input model.AdvanceInput) 
 	return r.rawCreate(ctx, input)
 }
 
+func (r *InputRepository) RawCreate(ctx context.Context, input model.AdvanceInput) (*model.AdvanceInput, error) {
+	return r.rawCreate(ctx, input)
+}
+
 func (r *InputRepository) rawCreate(ctx context.Context, input model.AdvanceInput) (*model.AdvanceInput, error) {
 	insertSql := `INSERT INTO convenience_inputs (
 		input_index,
@@ -213,6 +217,39 @@ func (r *InputRepository) FindByIndex(ctx context.Context, index int) (*model.Ad
 		sql,
 		index,
 	)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Close()
+	if res.Next() {
+		input, err := parseInput(res)
+		if err != nil {
+			return nil, err
+		}
+		return input, nil
+	}
+	return nil, nil
+}
+
+func (r *InputRepository) FindInputByAppContractAndIndex(ctx context.Context, index int, appContract common.Address) (*model.AdvanceInput, error) {
+	sql := `SELECT
+		input_index,
+		status,
+		msg_sender,
+		payload,
+		block_number,
+		block_timestamp,
+		prev_randao,
+		exception,
+		app_contract FROM convenience_inputs WHERE input_index = $1 AND app_contract = $2`
+
+	res, err := r.Db.QueryxContext(
+		ctx,
+		sql,
+		index,
+		appContract.Hex(),
+	)
+
 	if err != nil {
 		return nil, err
 	}

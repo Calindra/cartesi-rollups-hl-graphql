@@ -138,3 +138,30 @@ func (s *NoticeRepositorySuite) TestNoticePagination() {
 	s.Equal(10, int(notices.Rows[0].InputIndex))
 	s.Equal(19, int(notices.Rows[len(notices.Rows)-1].InputIndex))
 }
+
+func (s *NoticeRepositorySuite) TestFindNoticeByAppContractAndIndex() {
+	ctx := context.Background()
+	_, err := s.repository.Create(ctx, &model.ConvenienceNotice{
+		Payload:     "0x0011",
+		InputIndex:  1,
+		OutputIndex: 1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+
+	_, err = s.repository.Create(ctx, &model.ConvenienceNotice{
+		Payload:     "0xFF22",
+		InputIndex:  2,
+		OutputIndex: 3,
+		AppContract: common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
+	})
+	s.NoError(err)
+
+	report, err := s.repository.FindNoticeByAppContractAndIndex(ctx, 2, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
+	s.NoError(err)
+
+	s.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), report.AppContract)
+	s.Equal("0xFF22", report.Payload)
+	s.Equal(uint64(2), report.InputIndex)
+	s.Equal(uint64(3), report.OutputIndex)
+}
