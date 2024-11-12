@@ -13,7 +13,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
+	"github.com/calindra/nonodo/internal/reader/model"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -50,18 +50,21 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Input struct {
-		BlockNumber func(childComplexity int) int
-		Index       func(childComplexity int) int
-		MsgSender   func(childComplexity int) int
-		Notice      func(childComplexity int, index int) int
-		Notices     func(childComplexity int, first *int, last *int, after *string, before *string) int
-		Payload     func(childComplexity int) int
-		Report      func(childComplexity int, index int) int
-		Reports     func(childComplexity int, first *int, last *int, after *string, before *string) int
-		Status      func(childComplexity int) int
-		Timestamp   func(childComplexity int) int
-		Voucher     func(childComplexity int, index int) int
-		Vouchers    func(childComplexity int, first *int, last *int, after *string, before *string) int
+		BlockNumber         func(childComplexity int) int
+		BlockTimestamp      func(childComplexity int) int
+		EspressoBlockNumber func(childComplexity int) int
+		EspressoTimestamp   func(childComplexity int) int
+		ID                  func(childComplexity int) int
+		Index               func(childComplexity int) int
+		InputBoxIndex       func(childComplexity int) int
+		MsgSender           func(childComplexity int) int
+		Notices             func(childComplexity int, first *int, last *int, after *string, before *string) int
+		Payload             func(childComplexity int) int
+		PrevRandao          func(childComplexity int) int
+		Reports             func(childComplexity int, first *int, last *int, after *string, before *string) int
+		Status              func(childComplexity int) int
+		Timestamp           func(childComplexity int) int
+		Vouchers            func(childComplexity int, first *int, last *int, after *string, before *string) int
 	}
 
 	InputConnection struct {
@@ -101,29 +104,18 @@ type ComplexityRoot struct {
 	}
 
 	Proof struct {
-		FirstIndex                               func(childComplexity int) int
-		InputByInputIndex                        func(childComplexity int) int
-		InputIndex                               func(childComplexity int) int
-		LastInput                                func(childComplexity int) int
-		NodeID                                   func(childComplexity int) int
-		OutputIndex                              func(childComplexity int) int
-		ValidityInputIndexWithinEpoch            func(childComplexity int) int
-		ValidityMachineStateHash                 func(childComplexity int) int
-		ValidityOutputEpochRootHash              func(childComplexity int) int
-		ValidityOutputHashInOutputHashesSiblings func(childComplexity int) int
-		ValidityOutputHashesInEpochSiblings      func(childComplexity int) int
-		ValidityOutputHashesRootHash             func(childComplexity int) int
-		ValidityOutputIndexWithinInput           func(childComplexity int) int
+		OutputHashesSiblings func(childComplexity int) int
+		OutputIndex          func(childComplexity int) int
 	}
 
 	Query struct {
-		Input    func(childComplexity int, index int) int
+		Input    func(childComplexity int, id string) int
 		Inputs   func(childComplexity int, first *int, last *int, after *string, before *string, where *model.InputFilter) int
-		Notice   func(childComplexity int, noticeIndex int, inputIndex int) int
+		Notice   func(childComplexity int, outputIndex int) int
 		Notices  func(childComplexity int, first *int, last *int, after *string, before *string) int
-		Report   func(childComplexity int, reportIndex int, inputIndex int) int
+		Report   func(childComplexity int, reportIndex int) int
 		Reports  func(childComplexity int, first *int, last *int, after *string, before *string) int
-		Voucher  func(childComplexity int, voucherIndex int, inputIndex int) int
+		Voucher  func(childComplexity int, outputIndex int) int
 		Vouchers func(childComplexity int, first *int, last *int, after *string, before *string, filter []*model.ConvenientFilter) int
 	}
 
@@ -145,12 +137,14 @@ type ComplexityRoot struct {
 	}
 
 	Voucher struct {
-		Destination func(childComplexity int) int
-		Executed    func(childComplexity int) int
-		Index       func(childComplexity int) int
-		Input       func(childComplexity int) int
-		Payload     func(childComplexity int) int
-		Proof       func(childComplexity int) int
+		Destination     func(childComplexity int) int
+		Executed        func(childComplexity int) int
+		Index           func(childComplexity int) int
+		Input           func(childComplexity int) int
+		Payload         func(childComplexity int) int
+		Proof           func(childComplexity int) int
+		TransactionHash func(childComplexity int) int
+		Value           func(childComplexity int) int
 	}
 
 	VoucherConnection struct {
@@ -166,23 +160,18 @@ type ComplexityRoot struct {
 }
 
 type InputResolver interface {
-	Voucher(ctx context.Context, obj *model.Input, index int) (*model.Voucher, error)
-	Notice(ctx context.Context, obj *model.Input, index int) (*model.Notice, error)
-	Report(ctx context.Context, obj *model.Input, index int) (*model.Report, error)
 	Vouchers(ctx context.Context, obj *model.Input, first *int, last *int, after *string, before *string) (*model.Connection[*model.Voucher], error)
 	Notices(ctx context.Context, obj *model.Input, first *int, last *int, after *string, before *string) (*model.Connection[*model.Notice], error)
 	Reports(ctx context.Context, obj *model.Input, first *int, last *int, after *string, before *string) (*model.Connection[*model.Report], error)
 }
 type NoticeResolver interface {
 	Input(ctx context.Context, obj *model.Notice) (*model.Input, error)
-
-	Proof(ctx context.Context, obj *model.Notice) (*model.Proof, error)
 }
 type QueryResolver interface {
-	Input(ctx context.Context, index int) (*model.Input, error)
-	Voucher(ctx context.Context, voucherIndex int, inputIndex int) (*model.Voucher, error)
-	Notice(ctx context.Context, noticeIndex int, inputIndex int) (*model.Notice, error)
-	Report(ctx context.Context, reportIndex int, inputIndex int) (*model.Report, error)
+	Input(ctx context.Context, id string) (*model.Input, error)
+	Voucher(ctx context.Context, outputIndex int) (*model.Voucher, error)
+	Notice(ctx context.Context, outputIndex int) (*model.Notice, error)
+	Report(ctx context.Context, reportIndex int) (*model.Report, error)
 	Inputs(ctx context.Context, first *int, last *int, after *string, before *string, where *model.InputFilter) (*model.Connection[*model.Input], error)
 	Vouchers(ctx context.Context, first *int, last *int, after *string, before *string, filter []*model.ConvenientFilter) (*model.Connection[*model.Voucher], error)
 	Notices(ctx context.Context, first *int, last *int, after *string, before *string) (*model.Connection[*model.Notice], error)
@@ -193,8 +182,6 @@ type ReportResolver interface {
 }
 type VoucherResolver interface {
 	Input(ctx context.Context, obj *model.Voucher) (*model.Input, error)
-
-	Proof(ctx context.Context, obj *model.Voucher) (*model.Proof, error)
 }
 
 type executableSchema struct {
@@ -223,6 +210,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Input.BlockNumber(childComplexity), true
 
+	case "Input.blockTimestamp":
+		if e.complexity.Input.BlockTimestamp == nil {
+			break
+		}
+
+		return e.complexity.Input.BlockTimestamp(childComplexity), true
+
+	case "Input.espressoBlockNumber":
+		if e.complexity.Input.EspressoBlockNumber == nil {
+			break
+		}
+
+		return e.complexity.Input.EspressoBlockNumber(childComplexity), true
+
+	case "Input.espressoTimestamp":
+		if e.complexity.Input.EspressoTimestamp == nil {
+			break
+		}
+
+		return e.complexity.Input.EspressoTimestamp(childComplexity), true
+
+	case "Input.id":
+		if e.complexity.Input.ID == nil {
+			break
+		}
+
+		return e.complexity.Input.ID(childComplexity), true
+
 	case "Input.index":
 		if e.complexity.Input.Index == nil {
 			break
@@ -230,24 +245,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Input.Index(childComplexity), true
 
+	case "Input.inputBoxIndex":
+		if e.complexity.Input.InputBoxIndex == nil {
+			break
+		}
+
+		return e.complexity.Input.InputBoxIndex(childComplexity), true
+
 	case "Input.msgSender":
 		if e.complexity.Input.MsgSender == nil {
 			break
 		}
 
 		return e.complexity.Input.MsgSender(childComplexity), true
-
-	case "Input.notice":
-		if e.complexity.Input.Notice == nil {
-			break
-		}
-
-		args, err := ec.field_Input_notice_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Input.Notice(childComplexity, args["index"].(int)), true
 
 	case "Input.notices":
 		if e.complexity.Input.Notices == nil {
@@ -268,17 +278,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Input.Payload(childComplexity), true
 
-	case "Input.report":
-		if e.complexity.Input.Report == nil {
+	case "Input.prevRandao":
+		if e.complexity.Input.PrevRandao == nil {
 			break
 		}
 
-		args, err := ec.field_Input_report_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Input.Report(childComplexity, args["index"].(int)), true
+		return e.complexity.Input.PrevRandao(childComplexity), true
 
 	case "Input.reports":
 		if e.complexity.Input.Reports == nil {
@@ -305,18 +310,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Input.Timestamp(childComplexity), true
-
-	case "Input.voucher":
-		if e.complexity.Input.Voucher == nil {
-			break
-		}
-
-		args, err := ec.field_Input_voucher_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Input.Voucher(childComplexity, args["index"].(int)), true
 
 	case "Input.vouchers":
 		if e.complexity.Input.Vouchers == nil {
@@ -456,40 +449,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
 
-	case "Proof.firstIndex":
-		if e.complexity.Proof.FirstIndex == nil {
+	case "Proof.outputHashesSiblings":
+		if e.complexity.Proof.OutputHashesSiblings == nil {
 			break
 		}
 
-		return e.complexity.Proof.FirstIndex(childComplexity), true
-
-	case "Proof.inputByInputIndex":
-		if e.complexity.Proof.InputByInputIndex == nil {
-			break
-		}
-
-		return e.complexity.Proof.InputByInputIndex(childComplexity), true
-
-	case "Proof.inputIndex":
-		if e.complexity.Proof.InputIndex == nil {
-			break
-		}
-
-		return e.complexity.Proof.InputIndex(childComplexity), true
-
-	case "Proof.lastInput":
-		if e.complexity.Proof.LastInput == nil {
-			break
-		}
-
-		return e.complexity.Proof.LastInput(childComplexity), true
-
-	case "Proof.nodeId":
-		if e.complexity.Proof.NodeID == nil {
-			break
-		}
-
-		return e.complexity.Proof.NodeID(childComplexity), true
+		return e.complexity.Proof.OutputHashesSiblings(childComplexity), true
 
 	case "Proof.outputIndex":
 		if e.complexity.Proof.OutputIndex == nil {
@@ -497,55 +462,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Proof.OutputIndex(childComplexity), true
-
-	case "Proof.validityInputIndexWithinEpoch":
-		if e.complexity.Proof.ValidityInputIndexWithinEpoch == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityInputIndexWithinEpoch(childComplexity), true
-
-	case "Proof.validityMachineStateHash":
-		if e.complexity.Proof.ValidityMachineStateHash == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityMachineStateHash(childComplexity), true
-
-	case "Proof.validityOutputEpochRootHash":
-		if e.complexity.Proof.ValidityOutputEpochRootHash == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityOutputEpochRootHash(childComplexity), true
-
-	case "Proof.validityOutputHashInOutputHashesSiblings":
-		if e.complexity.Proof.ValidityOutputHashInOutputHashesSiblings == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityOutputHashInOutputHashesSiblings(childComplexity), true
-
-	case "Proof.validityOutputHashesInEpochSiblings":
-		if e.complexity.Proof.ValidityOutputHashesInEpochSiblings == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityOutputHashesInEpochSiblings(childComplexity), true
-
-	case "Proof.validityOutputHashesRootHash":
-		if e.complexity.Proof.ValidityOutputHashesRootHash == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityOutputHashesRootHash(childComplexity), true
-
-	case "Proof.validityOutputIndexWithinInput":
-		if e.complexity.Proof.ValidityOutputIndexWithinInput == nil {
-			break
-		}
-
-		return e.complexity.Proof.ValidityOutputIndexWithinInput(childComplexity), true
 
 	case "Query.input":
 		if e.complexity.Query.Input == nil {
@@ -557,7 +473,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Input(childComplexity, args["index"].(int)), true
+		return e.complexity.Query.Input(childComplexity, args["id"].(string)), true
 
 	case "Query.inputs":
 		if e.complexity.Query.Inputs == nil {
@@ -581,7 +497,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Notice(childComplexity, args["noticeIndex"].(int), args["inputIndex"].(int)), true
+		return e.complexity.Query.Notice(childComplexity, args["outputIndex"].(int)), true
 
 	case "Query.notices":
 		if e.complexity.Query.Notices == nil {
@@ -605,7 +521,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Report(childComplexity, args["reportIndex"].(int), args["inputIndex"].(int)), true
+		return e.complexity.Query.Report(childComplexity, args["reportIndex"].(int)), true
 
 	case "Query.reports":
 		if e.complexity.Query.Reports == nil {
@@ -629,7 +545,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Voucher(childComplexity, args["voucherIndex"].(int), args["inputIndex"].(int)), true
+		return e.complexity.Query.Voucher(childComplexity, args["outputIndex"].(int)), true
 
 	case "Query.vouchers":
 		if e.complexity.Query.Vouchers == nil {
@@ -740,6 +656,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Voucher.Proof(childComplexity), true
+
+	case "Voucher.transactionHash":
+		if e.complexity.Voucher.TransactionHash == nil {
+			break
+		}
+
+		return e.complexity.Voucher.TransactionHash(childComplexity), true
+
+	case "Voucher.value":
+		if e.complexity.Voucher.Value == nil {
+			break
+		}
+
+		return e.complexity.Voucher.Value(childComplexity), true
 
 	case "VoucherConnection.edges":
 		if e.complexity.VoucherConnection.Edges == nil {
@@ -872,26 +802,8 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../../../api/reader.graphql", Input: `"Data that can be used as proof to validate notices and execute vouchers on the base layer blockchain"
 type Proof {
-  firstIndex: Int!
-
-  """Reads a single ` + "`" + `Input` + "`" + ` that is related to this ` + "`" + `Proof` + "`" + `."""
-  inputByInputIndex: Input
-  inputIndex: Int!
-  lastInput: Int!
-
-  """
-  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-  """
-  nodeId: ID!
-
-  outputIndex: Int!
-  validityInputIndexWithinEpoch: Int!
-  validityMachineStateHash: String!
-  validityOutputEpochRootHash: String!
-  validityOutputHashInOutputHashesSiblings: [String]!
-  validityOutputHashesInEpochSiblings: [String]!
-  validityOutputHashesRootHash: String!
-  validityOutputIndexWithinInput: Int!
+  outputIndex: BigInt!
+  outputHashesSiblings: [String]!
 }
 
 enum CompletionStatus {
@@ -907,6 +819,8 @@ enum CompletionStatus {
 
 "Request submitted to the application to advance its state"
 type Input {
+  "id of the input"
+  id: String!
   "Input index starting from genesis"
   index: Int!
   "Status of the input"
@@ -914,23 +828,33 @@ type Input {
   "Address responsible for submitting the input"
   msgSender: String!
   "Timestamp associated with the input submission, as defined by the base layer's block in which it was recorded"
-  timestamp: BigInt!
+  timestamp: BigInt! @deprecated(reason: "Use ` + "`" + `blockTimestamp` + "`" + ` instead")
   "Number of the base layer block in which the input was recorded"
   blockNumber: BigInt!
   "Input payload in Ethereum hex binary format, starting with '0x'"
   payload: String!
-  "Get a voucher from this particular input given the voucher's index"
-  voucher(index: Int!): Voucher!
-  "Get a notice from this particular input given the notice's index"
-  notice(index: Int!): Notice!
-  "Get a report from this particular input given the report's index"
-  report(index: Int!): Report!
+  # "Get a voucher from this particular input given the voucher's index"
+  # voucher(index: Int!): Voucher!
+  # "Get a notice from this particular input given the notice's index"
+  # notice(index: Int!): Notice!
+  # "Get a report from this particular input given the report's index"
+  # report(index: Int!): Report!
   "Get vouchers from this particular input with support for pagination"
   vouchers(first: Int, last: Int, after: String, before: String): VoucherConnection!
   "Get notices from this particular input with support for pagination"
   notices(first: Int, last: Int, after: String, before: String): NoticeConnection!
   "Get reports from this particular input with support for pagination"
   reports(first: Int, last: Int, after: String, before: String): ReportConnection!
+  "Timestamp associated with the Espresso input submission"
+  espressoTimestamp: String @deprecated(reason: "Will be removed")
+  "Number of the Espresso block in which the input was recorded"
+  espressoBlockNumber: String @deprecated(reason: "Will be removed")
+  "Input index in the Input Box"
+  inputBoxIndex: String
+
+  blockTimestamp: BigInt
+
+  prevRandao: String
 }
 
 "Representation of a transaction that can be carried out on the base layer blockchain, such as a transfer of assets"
@@ -946,20 +870,25 @@ type Voucher {
   "Proof object that allows this voucher to be validated and executed on the base layer blockchain"
   proof: Proof
 
+  value: BigInt
+
   "Indicates whether the voucher has been executed on the base layer blockchain"
   executed: Boolean
+
+  "The hash of executed transaction"
+  transactionHash: String
 }
 
 "Top level queries"
 type Query {
   "Get input based on its identifier"
-  input(index: Int!): Input!
+  input(id: String!): Input!
   "Get a voucher based on its index"
-  voucher(voucherIndex: Int!, inputIndex: Int!): Voucher!
+  voucher(outputIndex: Int!): Voucher!
   "Get a notice based on its index"
-  notice(noticeIndex: Int!, inputIndex: Int!): Notice!
+  notice(outputIndex: Int!): Notice!
   "Get a report based on its index"
-  report(reportIndex: Int!, inputIndex: Int!): Report!
+  report(reportIndex: Int!): Report!
   "Get inputs with support for pagination"
   inputs(first: Int, last: Int, after: String, before: String, where: InputFilter): InputConnection!
   "Get vouchers with support for pagination"
@@ -1037,6 +966,9 @@ input InputFilter {
 
   "Filter only inputs with the message sender"
   msgSender: String
+
+  "Filter only inputs from 'inputbox' or 'espresso'"
+  type: String
 }
 
 scalar BigInt
@@ -1151,21 +1083,6 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Input_notice_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["index"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["index"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Input_notices_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1208,21 +1125,6 @@ func (ec *executionContext) field_Input_notices_args(ctx context.Context, rawArg
 	return args, nil
 }
 
-func (ec *executionContext) field_Input_report_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["index"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["index"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Input_reports_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1262,21 +1164,6 @@ func (ec *executionContext) field_Input_reports_args(ctx context.Context, rawArg
 		}
 	}
 	args["before"] = arg3
-	return args, nil
-}
-
-func (ec *executionContext) field_Input_voucher_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["index"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["index"] = arg0
 	return args, nil
 }
 
@@ -1340,15 +1227,15 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 func (ec *executionContext) field_Query_input_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["index"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("index"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["index"] = arg0
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -1394,7 +1281,7 @@ func (ec *executionContext) field_Query_inputs_args(ctx context.Context, rawArgs
 	var arg4 *model.InputFilter
 	if tmp, ok := rawArgs["where"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("where"))
-		arg4, err = ec.unmarshalOInputFilter2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInputFilter(ctx, tmp)
+		arg4, err = ec.unmarshalOInputFilter2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInputFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1407,23 +1294,14 @@ func (ec *executionContext) field_Query_notice_args(ctx context.Context, rawArgs
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["noticeIndex"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("noticeIndex"))
+	if tmp, ok := rawArgs["outputIndex"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("outputIndex"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["noticeIndex"] = arg0
-	var arg1 int
-	if tmp, ok := rawArgs["inputIndex"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("inputIndex"))
-		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["inputIndex"] = arg1
+	args["outputIndex"] = arg0
 	return args, nil
 }
 
@@ -1481,15 +1359,6 @@ func (ec *executionContext) field_Query_report_args(ctx context.Context, rawArgs
 		}
 	}
 	args["reportIndex"] = arg0
-	var arg1 int
-	if tmp, ok := rawArgs["inputIndex"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("inputIndex"))
-		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["inputIndex"] = arg1
 	return args, nil
 }
 
@@ -1539,23 +1408,14 @@ func (ec *executionContext) field_Query_voucher_args(ctx context.Context, rawArg
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["voucherIndex"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("voucherIndex"))
+	if tmp, ok := rawArgs["outputIndex"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("outputIndex"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["voucherIndex"] = arg0
-	var arg1 int
-	if tmp, ok := rawArgs["inputIndex"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("inputIndex"))
-		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["inputIndex"] = arg1
+	args["outputIndex"] = arg0
 	return args, nil
 }
 
@@ -1601,7 +1461,7 @@ func (ec *executionContext) field_Query_vouchers_args(ctx context.Context, rawAr
 	var arg4 []*model.ConvenientFilter
 	if tmp, ok := rawArgs["filter"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg4, err = ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, tmp)
+		arg4, err = ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1647,6 +1507,50 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Input_id(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _Input_index(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Input_index(ctx, field)
@@ -1720,7 +1624,7 @@ func (ec *executionContext) _Input_status(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(model.CompletionStatus)
 	fc.Result = res
-	return ec.marshalNCompletionStatus2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx, field.Selections, res)
+	return ec.marshalNCompletionStatus2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Input_status(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1912,203 +1816,6 @@ func (ec *executionContext) fieldContext_Input_payload(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Input_voucher(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Input_voucher(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Input().Voucher(rctx, obj, fc.Args["index"].(int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Voucher)
-	fc.Result = res
-	return ec.marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐVoucher(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Input_voucher(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Input",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "index":
-				return ec.fieldContext_Voucher_index(ctx, field)
-			case "input":
-				return ec.fieldContext_Voucher_input(ctx, field)
-			case "destination":
-				return ec.fieldContext_Voucher_destination(ctx, field)
-			case "payload":
-				return ec.fieldContext_Voucher_payload(ctx, field)
-			case "proof":
-				return ec.fieldContext_Voucher_proof(ctx, field)
-			case "executed":
-				return ec.fieldContext_Voucher_executed(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Voucher", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Input_voucher_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Input_notice(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Input_notice(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Input().Notice(rctx, obj, fc.Args["index"].(int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Notice)
-	fc.Result = res
-	return ec.marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐNotice(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Input_notice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Input",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "index":
-				return ec.fieldContext_Notice_index(ctx, field)
-			case "input":
-				return ec.fieldContext_Notice_input(ctx, field)
-			case "payload":
-				return ec.fieldContext_Notice_payload(ctx, field)
-			case "proof":
-				return ec.fieldContext_Notice_proof(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Notice", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Input_notice_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Input_report(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Input_report(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Input().Report(rctx, obj, fc.Args["index"].(int))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Report)
-	fc.Result = res
-	return ec.marshalNReport2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐReport(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Input_report(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Input",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "index":
-				return ec.fieldContext_Report_index(ctx, field)
-			case "input":
-				return ec.fieldContext_Report_input(ctx, field)
-			case "payload":
-				return ec.fieldContext_Report_payload(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Report", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Input_report_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Input_vouchers(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Input_vouchers(ctx, field)
 	if err != nil {
@@ -2137,7 +1844,7 @@ func (ec *executionContext) _Input_vouchers(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Connection[*model.Voucher])
 	fc.Result = res
-	return ec.marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Input_vouchers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2200,7 +1907,7 @@ func (ec *executionContext) _Input_notices(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Connection[*model.Notice])
 	fc.Result = res
-	return ec.marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Input_notices(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2263,7 +1970,7 @@ func (ec *executionContext) _Input_reports(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Connection[*model.Report])
 	fc.Result = res
-	return ec.marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Input_reports(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2294,6 +2001,211 @@ func (ec *executionContext) fieldContext_Input_reports(ctx context.Context, fiel
 	if fc.Args, err = ec.field_Input_reports_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Input_espressoTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_espressoTimestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EspressoTimestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_espressoTimestamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Input_espressoBlockNumber(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EspressoBlockNumber, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_espressoBlockNumber(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Input_inputBoxIndex(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_inputBoxIndex(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.InputBoxIndex, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_inputBoxIndex(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Input_blockTimestamp(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_blockTimestamp(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.BlockTimestamp, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOBigInt2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_blockTimestamp(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type BigInt does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Input_prevRandao(ctx context.Context, field graphql.CollectedField, obj *model.Input) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Input_prevRandao(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PrevRandao, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Input_prevRandao(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Input",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -2370,7 +2282,7 @@ func (ec *executionContext) _InputConnection_edges(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Edge[*model.Input])
 	fc.Result = res
-	return ec.marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_InputConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2420,7 +2332,7 @@ func (ec *executionContext) _InputConnection_pageInfo(ctx context.Context, field
 	}
 	res := resTmp.(*model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_InputConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2474,7 +2386,7 @@ func (ec *executionContext) _InputEdge_node(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Input)
 	fc.Result = res
-	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
+	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_InputEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2485,6 +2397,8 @@ func (ec *executionContext) fieldContext_InputEdge_node(ctx context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Input_id(ctx, field)
 			case "index":
 				return ec.fieldContext_Input_index(ctx, field)
 			case "status":
@@ -2497,18 +2411,22 @@ func (ec *executionContext) fieldContext_InputEdge_node(ctx context.Context, fie
 				return ec.fieldContext_Input_blockNumber(ctx, field)
 			case "payload":
 				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
 			case "vouchers":
 				return ec.fieldContext_Input_vouchers(ctx, field)
 			case "notices":
 				return ec.fieldContext_Input_notices(ctx, field)
 			case "reports":
 				return ec.fieldContext_Input_reports(ctx, field)
+			case "espressoTimestamp":
+				return ec.fieldContext_Input_espressoTimestamp(ctx, field)
+			case "espressoBlockNumber":
+				return ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+			case "inputBoxIndex":
+				return ec.fieldContext_Input_inputBoxIndex(ctx, field)
+			case "blockTimestamp":
+				return ec.fieldContext_Input_blockTimestamp(ctx, field)
+			case "prevRandao":
+				return ec.fieldContext_Input_prevRandao(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
 		},
@@ -2632,7 +2550,7 @@ func (ec *executionContext) _Notice_input(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Input)
 	fc.Result = res
-	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
+	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Notice_input(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2643,6 +2561,8 @@ func (ec *executionContext) fieldContext_Notice_input(ctx context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Input_id(ctx, field)
 			case "index":
 				return ec.fieldContext_Input_index(ctx, field)
 			case "status":
@@ -2655,18 +2575,22 @@ func (ec *executionContext) fieldContext_Notice_input(ctx context.Context, field
 				return ec.fieldContext_Input_blockNumber(ctx, field)
 			case "payload":
 				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
 			case "vouchers":
 				return ec.fieldContext_Input_vouchers(ctx, field)
 			case "notices":
 				return ec.fieldContext_Input_notices(ctx, field)
 			case "reports":
 				return ec.fieldContext_Input_reports(ctx, field)
+			case "espressoTimestamp":
+				return ec.fieldContext_Input_espressoTimestamp(ctx, field)
+			case "espressoBlockNumber":
+				return ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+			case "inputBoxIndex":
+				return ec.fieldContext_Input_inputBoxIndex(ctx, field)
+			case "blockTimestamp":
+				return ec.fieldContext_Input_blockTimestamp(ctx, field)
+			case "prevRandao":
+				return ec.fieldContext_Input_prevRandao(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
 		},
@@ -2732,7 +2656,7 @@ func (ec *executionContext) _Notice_proof(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Notice().Proof(rctx, obj)
+		return obj.Proof, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2741,45 +2665,23 @@ func (ec *executionContext) _Notice_proof(ctx context.Context, field graphql.Col
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Proof)
+	res := resTmp.(model.Proof)
 	fc.Result = res
-	return ec.marshalOProof2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐProof(ctx, field.Selections, res)
+	return ec.marshalOProof2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐProof(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Notice_proof(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Notice",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "firstIndex":
-				return ec.fieldContext_Proof_firstIndex(ctx, field)
-			case "inputByInputIndex":
-				return ec.fieldContext_Proof_inputByInputIndex(ctx, field)
-			case "inputIndex":
-				return ec.fieldContext_Proof_inputIndex(ctx, field)
-			case "lastInput":
-				return ec.fieldContext_Proof_lastInput(ctx, field)
-			case "nodeId":
-				return ec.fieldContext_Proof_nodeId(ctx, field)
 			case "outputIndex":
 				return ec.fieldContext_Proof_outputIndex(ctx, field)
-			case "validityInputIndexWithinEpoch":
-				return ec.fieldContext_Proof_validityInputIndexWithinEpoch(ctx, field)
-			case "validityMachineStateHash":
-				return ec.fieldContext_Proof_validityMachineStateHash(ctx, field)
-			case "validityOutputEpochRootHash":
-				return ec.fieldContext_Proof_validityOutputEpochRootHash(ctx, field)
-			case "validityOutputHashInOutputHashesSiblings":
-				return ec.fieldContext_Proof_validityOutputHashInOutputHashesSiblings(ctx, field)
-			case "validityOutputHashesInEpochSiblings":
-				return ec.fieldContext_Proof_validityOutputHashesInEpochSiblings(ctx, field)
-			case "validityOutputHashesRootHash":
-				return ec.fieldContext_Proof_validityOutputHashesRootHash(ctx, field)
-			case "validityOutputIndexWithinInput":
-				return ec.fieldContext_Proof_validityOutputIndexWithinInput(ctx, field)
+			case "outputHashesSiblings":
+				return ec.fieldContext_Proof_outputHashesSiblings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Proof", field.Name)
 		},
@@ -2859,7 +2761,7 @@ func (ec *executionContext) _NoticeConnection_edges(ctx context.Context, field g
 	}
 	res := resTmp.([]*model.Edge[*model.Notice])
 	fc.Result = res
-	return ec.marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_NoticeConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2909,7 +2811,7 @@ func (ec *executionContext) _NoticeConnection_pageInfo(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_NoticeConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2963,7 +2865,7 @@ func (ec *executionContext) _NoticeEdge_node(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Notice)
 	fc.Result = res
-	return ec.marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐNotice(ctx, field.Selections, res)
+	return ec.marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐNotice(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_NoticeEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3203,249 +3105,6 @@ func (ec *executionContext) fieldContext_PageInfo_hasPreviousPage(ctx context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Proof_firstIndex(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_firstIndex(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.FirstIndex, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_firstIndex(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_inputByInputIndex(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_inputByInputIndex(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.InputByInputIndex, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Input)
-	fc.Result = res
-	return ec.marshalOInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_inputByInputIndex(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "index":
-				return ec.fieldContext_Input_index(ctx, field)
-			case "status":
-				return ec.fieldContext_Input_status(ctx, field)
-			case "msgSender":
-				return ec.fieldContext_Input_msgSender(ctx, field)
-			case "timestamp":
-				return ec.fieldContext_Input_timestamp(ctx, field)
-			case "blockNumber":
-				return ec.fieldContext_Input_blockNumber(ctx, field)
-			case "payload":
-				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
-			case "vouchers":
-				return ec.fieldContext_Input_vouchers(ctx, field)
-			case "notices":
-				return ec.fieldContext_Input_notices(ctx, field)
-			case "reports":
-				return ec.fieldContext_Input_reports(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_inputIndex(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_inputIndex(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.InputIndex, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_inputIndex(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_lastInput(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_lastInput(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.LastInput, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_lastInput(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_nodeId(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_nodeId(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.NodeID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_nodeId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Proof_outputIndex(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Proof_outputIndex(ctx, field)
 	if err != nil {
@@ -3472,9 +3131,9 @@ func (ec *executionContext) _Proof_outputIndex(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNBigInt2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Proof_outputIndex(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3484,14 +3143,14 @@ func (ec *executionContext) fieldContext_Proof_outputIndex(ctx context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
+			return nil, errors.New("field of type BigInt does not have child fields")
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _Proof_validityInputIndexWithinEpoch(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityInputIndexWithinEpoch(ctx, field)
+func (ec *executionContext) _Proof_outputHashesSiblings(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Proof_outputHashesSiblings(ctx, field)
 	if err != nil {
 		return graphql.Null
 	}
@@ -3504,7 +3163,7 @@ func (ec *executionContext) _Proof_validityInputIndexWithinEpoch(ctx context.Con
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityInputIndexWithinEpoch, nil
+		return obj.OutputHashesSiblings, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3516,56 +3175,12 @@ func (ec *executionContext) _Proof_validityInputIndexWithinEpoch(ctx context.Con
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.([]string)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNString2ᚕstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) fieldContext_Proof_validityInputIndexWithinEpoch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityMachineStateHash(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityMachineStateHash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityMachineStateHash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityMachineStateHash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Proof_outputHashesSiblings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Proof",
 		Field:      field,
@@ -3573,226 +3188,6 @@ func (ec *executionContext) fieldContext_Proof_validityMachineStateHash(ctx cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityOutputEpochRootHash(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityOutputEpochRootHash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityOutputEpochRootHash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityOutputEpochRootHash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityOutputHashInOutputHashesSiblings(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityOutputHashInOutputHashesSiblings(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityOutputHashInOutputHashesSiblings, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*string)
-	fc.Result = res
-	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityOutputHashInOutputHashesSiblings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityOutputHashesInEpochSiblings(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityOutputHashesInEpochSiblings(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityOutputHashesInEpochSiblings, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*string)
-	fc.Result = res
-	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityOutputHashesInEpochSiblings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityOutputHashesRootHash(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityOutputHashesRootHash(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityOutputHashesRootHash, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityOutputHashesRootHash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Proof_validityOutputIndexWithinInput(ctx context.Context, field graphql.CollectedField, obj *model.Proof) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_Proof_validityOutputIndexWithinInput(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ValidityOutputIndexWithinInput, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_Proof_validityOutputIndexWithinInput(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Proof",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3812,7 +3207,7 @@ func (ec *executionContext) _Query_input(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Input(rctx, fc.Args["index"].(int))
+		return ec.resolvers.Query().Input(rctx, fc.Args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3826,7 +3221,7 @@ func (ec *executionContext) _Query_input(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.Input)
 	fc.Result = res
-	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
+	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_input(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3837,6 +3232,8 @@ func (ec *executionContext) fieldContext_Query_input(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Input_id(ctx, field)
 			case "index":
 				return ec.fieldContext_Input_index(ctx, field)
 			case "status":
@@ -3849,18 +3246,22 @@ func (ec *executionContext) fieldContext_Query_input(ctx context.Context, field 
 				return ec.fieldContext_Input_blockNumber(ctx, field)
 			case "payload":
 				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
 			case "vouchers":
 				return ec.fieldContext_Input_vouchers(ctx, field)
 			case "notices":
 				return ec.fieldContext_Input_notices(ctx, field)
 			case "reports":
 				return ec.fieldContext_Input_reports(ctx, field)
+			case "espressoTimestamp":
+				return ec.fieldContext_Input_espressoTimestamp(ctx, field)
+			case "espressoBlockNumber":
+				return ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+			case "inputBoxIndex":
+				return ec.fieldContext_Input_inputBoxIndex(ctx, field)
+			case "blockTimestamp":
+				return ec.fieldContext_Input_blockTimestamp(ctx, field)
+			case "prevRandao":
+				return ec.fieldContext_Input_prevRandao(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
 		},
@@ -3893,7 +3294,7 @@ func (ec *executionContext) _Query_voucher(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Voucher(rctx, fc.Args["voucherIndex"].(int), fc.Args["inputIndex"].(int))
+		return ec.resolvers.Query().Voucher(rctx, fc.Args["outputIndex"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3907,7 +3308,7 @@ func (ec *executionContext) _Query_voucher(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Voucher)
 	fc.Result = res
-	return ec.marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐVoucher(ctx, field.Selections, res)
+	return ec.marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐVoucher(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_voucher(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3928,8 +3329,12 @@ func (ec *executionContext) fieldContext_Query_voucher(ctx context.Context, fiel
 				return ec.fieldContext_Voucher_payload(ctx, field)
 			case "proof":
 				return ec.fieldContext_Voucher_proof(ctx, field)
+			case "value":
+				return ec.fieldContext_Voucher_value(ctx, field)
 			case "executed":
 				return ec.fieldContext_Voucher_executed(ctx, field)
+			case "transactionHash":
+				return ec.fieldContext_Voucher_transactionHash(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Voucher", field.Name)
 		},
@@ -3962,7 +3367,7 @@ func (ec *executionContext) _Query_notice(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Notice(rctx, fc.Args["noticeIndex"].(int), fc.Args["inputIndex"].(int))
+		return ec.resolvers.Query().Notice(rctx, fc.Args["outputIndex"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3976,7 +3381,7 @@ func (ec *executionContext) _Query_notice(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Notice)
 	fc.Result = res
-	return ec.marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐNotice(ctx, field.Selections, res)
+	return ec.marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐNotice(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_notice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4027,7 +3432,7 @@ func (ec *executionContext) _Query_report(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Report(rctx, fc.Args["reportIndex"].(int), fc.Args["inputIndex"].(int))
+		return ec.resolvers.Query().Report(rctx, fc.Args["reportIndex"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4041,7 +3446,7 @@ func (ec *executionContext) _Query_report(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Report)
 	fc.Result = res
-	return ec.marshalNReport2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐReport(ctx, field.Selections, res)
+	return ec.marshalNReport2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐReport(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_report(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4104,7 +3509,7 @@ func (ec *executionContext) _Query_inputs(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Connection[*model.Input])
 	fc.Result = res
-	return ec.marshalNInputConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNInputConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_inputs(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4167,7 +3572,7 @@ func (ec *executionContext) _Query_vouchers(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Connection[*model.Voucher])
 	fc.Result = res
-	return ec.marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_vouchers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4230,7 +3635,7 @@ func (ec *executionContext) _Query_notices(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Connection[*model.Notice])
 	fc.Result = res
-	return ec.marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_notices(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4293,7 +3698,7 @@ func (ec *executionContext) _Query_reports(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Connection[*model.Report])
 	fc.Result = res
-	return ec.marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
+	return ec.marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_reports(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4529,7 +3934,7 @@ func (ec *executionContext) _Report_input(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.(*model.Input)
 	fc.Result = res
-	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
+	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Report_input(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4540,6 +3945,8 @@ func (ec *executionContext) fieldContext_Report_input(ctx context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Input_id(ctx, field)
 			case "index":
 				return ec.fieldContext_Input_index(ctx, field)
 			case "status":
@@ -4552,18 +3959,22 @@ func (ec *executionContext) fieldContext_Report_input(ctx context.Context, field
 				return ec.fieldContext_Input_blockNumber(ctx, field)
 			case "payload":
 				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
 			case "vouchers":
 				return ec.fieldContext_Input_vouchers(ctx, field)
 			case "notices":
 				return ec.fieldContext_Input_notices(ctx, field)
 			case "reports":
 				return ec.fieldContext_Input_reports(ctx, field)
+			case "espressoTimestamp":
+				return ec.fieldContext_Input_espressoTimestamp(ctx, field)
+			case "espressoBlockNumber":
+				return ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+			case "inputBoxIndex":
+				return ec.fieldContext_Input_inputBoxIndex(ctx, field)
+			case "blockTimestamp":
+				return ec.fieldContext_Input_blockTimestamp(ctx, field)
+			case "prevRandao":
+				return ec.fieldContext_Input_prevRandao(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
 		},
@@ -4687,7 +4098,7 @@ func (ec *executionContext) _ReportConnection_edges(ctx context.Context, field g
 	}
 	res := resTmp.([]*model.Edge[*model.Report])
 	fc.Result = res
-	return ec.marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ReportConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4737,7 +4148,7 @@ func (ec *executionContext) _ReportConnection_pageInfo(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ReportConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4791,7 +4202,7 @@ func (ec *executionContext) _ReportEdge_node(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Report)
 	fc.Result = res
-	return ec.marshalNReport2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐReport(ctx, field.Selections, res)
+	return ec.marshalNReport2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐReport(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ReportEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4931,7 +4342,7 @@ func (ec *executionContext) _Voucher_input(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Input)
 	fc.Result = res
-	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
+	return ec.marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Voucher_input(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4942,6 +4353,8 @@ func (ec *executionContext) fieldContext_Voucher_input(ctx context.Context, fiel
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
+			case "id":
+				return ec.fieldContext_Input_id(ctx, field)
 			case "index":
 				return ec.fieldContext_Input_index(ctx, field)
 			case "status":
@@ -4954,18 +4367,22 @@ func (ec *executionContext) fieldContext_Voucher_input(ctx context.Context, fiel
 				return ec.fieldContext_Input_blockNumber(ctx, field)
 			case "payload":
 				return ec.fieldContext_Input_payload(ctx, field)
-			case "voucher":
-				return ec.fieldContext_Input_voucher(ctx, field)
-			case "notice":
-				return ec.fieldContext_Input_notice(ctx, field)
-			case "report":
-				return ec.fieldContext_Input_report(ctx, field)
 			case "vouchers":
 				return ec.fieldContext_Input_vouchers(ctx, field)
 			case "notices":
 				return ec.fieldContext_Input_notices(ctx, field)
 			case "reports":
 				return ec.fieldContext_Input_reports(ctx, field)
+			case "espressoTimestamp":
+				return ec.fieldContext_Input_espressoTimestamp(ctx, field)
+			case "espressoBlockNumber":
+				return ec.fieldContext_Input_espressoBlockNumber(ctx, field)
+			case "inputBoxIndex":
+				return ec.fieldContext_Input_inputBoxIndex(ctx, field)
+			case "blockTimestamp":
+				return ec.fieldContext_Input_blockTimestamp(ctx, field)
+			case "prevRandao":
+				return ec.fieldContext_Input_prevRandao(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Input", field.Name)
 		},
@@ -5075,7 +4492,7 @@ func (ec *executionContext) _Voucher_proof(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Voucher().Proof(rctx, obj)
+		return obj.Proof, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5084,47 +4501,66 @@ func (ec *executionContext) _Voucher_proof(ctx context.Context, field graphql.Co
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Proof)
+	res := resTmp.(model.Proof)
 	fc.Result = res
-	return ec.marshalOProof2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐProof(ctx, field.Selections, res)
+	return ec.marshalOProof2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐProof(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Voucher_proof(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Voucher",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "firstIndex":
-				return ec.fieldContext_Proof_firstIndex(ctx, field)
-			case "inputByInputIndex":
-				return ec.fieldContext_Proof_inputByInputIndex(ctx, field)
-			case "inputIndex":
-				return ec.fieldContext_Proof_inputIndex(ctx, field)
-			case "lastInput":
-				return ec.fieldContext_Proof_lastInput(ctx, field)
-			case "nodeId":
-				return ec.fieldContext_Proof_nodeId(ctx, field)
 			case "outputIndex":
 				return ec.fieldContext_Proof_outputIndex(ctx, field)
-			case "validityInputIndexWithinEpoch":
-				return ec.fieldContext_Proof_validityInputIndexWithinEpoch(ctx, field)
-			case "validityMachineStateHash":
-				return ec.fieldContext_Proof_validityMachineStateHash(ctx, field)
-			case "validityOutputEpochRootHash":
-				return ec.fieldContext_Proof_validityOutputEpochRootHash(ctx, field)
-			case "validityOutputHashInOutputHashesSiblings":
-				return ec.fieldContext_Proof_validityOutputHashInOutputHashesSiblings(ctx, field)
-			case "validityOutputHashesInEpochSiblings":
-				return ec.fieldContext_Proof_validityOutputHashesInEpochSiblings(ctx, field)
-			case "validityOutputHashesRootHash":
-				return ec.fieldContext_Proof_validityOutputHashesRootHash(ctx, field)
-			case "validityOutputIndexWithinInput":
-				return ec.fieldContext_Proof_validityOutputIndexWithinInput(ctx, field)
+			case "outputHashesSiblings":
+				return ec.fieldContext_Proof_outputHashesSiblings(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Proof", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Voucher_value(ctx context.Context, field graphql.CollectedField, obj *model.Voucher) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Voucher_value(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Value, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOBigInt2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Voucher_value(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Voucher",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type BigInt does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5166,6 +4602,47 @@ func (ec *executionContext) fieldContext_Voucher_executed(ctx context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Voucher_transactionHash(ctx context.Context, field graphql.CollectedField, obj *model.Voucher) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Voucher_transactionHash(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TransactionHash, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalOString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Voucher_transactionHash(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Voucher",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5243,7 +4720,7 @@ func (ec *executionContext) _VoucherConnection_edges(ctx context.Context, field 
 	}
 	res := resTmp.([]*model.Edge[*model.Voucher])
 	fc.Result = res
-	return ec.marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
+	return ec.marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VoucherConnection_edges(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5293,7 +4770,7 @@ func (ec *executionContext) _VoucherConnection_pageInfo(ctx context.Context, fie
 	}
 	res := resTmp.(*model.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VoucherConnection_pageInfo(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5347,7 +4824,7 @@ func (ec *executionContext) _VoucherEdge_node(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Voucher)
 	fc.Result = res
-	return ec.marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐVoucher(ctx, field.Selections, res)
+	return ec.marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐVoucher(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VoucherEdge_node(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5368,8 +4845,12 @@ func (ec *executionContext) fieldContext_VoucherEdge_node(ctx context.Context, f
 				return ec.fieldContext_Voucher_payload(ctx, field)
 			case "proof":
 				return ec.fieldContext_Voucher_proof(ctx, field)
+			case "value":
+				return ec.fieldContext_Voucher_value(ctx, field)
 			case "executed":
 				return ec.fieldContext_Voucher_executed(ctx, field)
+			case "transactionHash":
+				return ec.fieldContext_Voucher_transactionHash(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Voucher", field.Name)
 		},
@@ -7238,14 +6719,14 @@ func (ec *executionContext) unmarshalInputAddressFilterInput(ctx context.Context
 			it.Nin = data
 		case "and":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.And = data
 		case "or":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7286,14 +6767,14 @@ func (ec *executionContext) unmarshalInputBooleanFilterInput(ctx context.Context
 			it.Ne = data
 		case "and":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.And = data
 		case "or":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7320,28 +6801,28 @@ func (ec *executionContext) unmarshalInputConvenientFilter(ctx context.Context, 
 		switch k {
 		case "destination":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("destination"))
-			data, err := ec.unmarshalOAddressFilterInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐAddressFilterInput(ctx, v)
+			data, err := ec.unmarshalOAddressFilterInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐAddressFilterInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Destination = data
 		case "executed":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("executed"))
-			data, err := ec.unmarshalOBooleanFilterInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐBooleanFilterInput(ctx, v)
+			data, err := ec.unmarshalOBooleanFilterInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐBooleanFilterInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Executed = data
 		case "and":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("and"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.And = data
 		case "or":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("or"))
-			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
+			data, err := ec.unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7359,7 +6840,7 @@ func (ec *executionContext) unmarshalInputInputFilter(ctx context.Context, obj i
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"indexLowerThan", "indexGreaterThan", "msgSender"}
+	fieldsInOrder := [...]string{"indexLowerThan", "indexGreaterThan", "msgSender", "type"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -7387,6 +6868,13 @@ func (ec *executionContext) unmarshalInputInputFilter(ctx context.Context, obj i
 				return it, err
 			}
 			it.MsgSender = data
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
 		}
 	}
 
@@ -7412,6 +6900,11 @@ func (ec *executionContext) _Input(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Input")
+		case "id":
+			out.Values[i] = ec._Input_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "index":
 			out.Values[i] = ec._Input_index(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -7442,114 +6935,6 @@ func (ec *executionContext) _Input(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "voucher":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Input_voucher(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "notice":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Input_notice(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "report":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Input_report(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "vouchers":
 			field := field
 
@@ -7658,6 +7043,16 @@ func (ec *executionContext) _Input(ctx context.Context, sel ast.SelectionSet, ob
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "espressoTimestamp":
+			out.Values[i] = ec._Input_espressoTimestamp(ctx, field, obj)
+		case "espressoBlockNumber":
+			out.Values[i] = ec._Input_espressoBlockNumber(ctx, field, obj)
+		case "inputBoxIndex":
+			out.Values[i] = ec._Input_inputBoxIndex(ctx, field, obj)
+		case "blockTimestamp":
+			out.Values[i] = ec._Input_blockTimestamp(ctx, field, obj)
+		case "prevRandao":
+			out.Values[i] = ec._Input_prevRandao(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7832,38 +7227,7 @@ func (ec *executionContext) _Notice(ctx context.Context, sel ast.SelectionSet, o
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "proof":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Notice_proof(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			out.Values[i] = ec._Notice_proof(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8039,65 +7403,13 @@ func (ec *executionContext) _Proof(ctx context.Context, sel ast.SelectionSet, ob
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Proof")
-		case "firstIndex":
-			out.Values[i] = ec._Proof_firstIndex(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "inputByInputIndex":
-			out.Values[i] = ec._Proof_inputByInputIndex(ctx, field, obj)
-		case "inputIndex":
-			out.Values[i] = ec._Proof_inputIndex(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "lastInput":
-			out.Values[i] = ec._Proof_lastInput(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "nodeId":
-			out.Values[i] = ec._Proof_nodeId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "outputIndex":
 			out.Values[i] = ec._Proof_outputIndex(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "validityInputIndexWithinEpoch":
-			out.Values[i] = ec._Proof_validityInputIndexWithinEpoch(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityMachineStateHash":
-			out.Values[i] = ec._Proof_validityMachineStateHash(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityOutputEpochRootHash":
-			out.Values[i] = ec._Proof_validityOutputEpochRootHash(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityOutputHashInOutputHashesSiblings":
-			out.Values[i] = ec._Proof_validityOutputHashInOutputHashesSiblings(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityOutputHashesInEpochSiblings":
-			out.Values[i] = ec._Proof_validityOutputHashesInEpochSiblings(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityOutputHashesRootHash":
-			out.Values[i] = ec._Proof_validityOutputHashesRootHash(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "validityOutputIndexWithinInput":
-			out.Values[i] = ec._Proof_validityOutputIndexWithinInput(ctx, field, obj)
+		case "outputHashesSiblings":
+			out.Values[i] = ec._Proof_outputHashesSiblings(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -8586,40 +7898,13 @@ func (ec *executionContext) _Voucher(ctx context.Context, sel ast.SelectionSet, 
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "proof":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Voucher_proof(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			out.Values[i] = ec._Voucher_proof(ctx, field, obj)
+		case "value":
+			out.Values[i] = ec._Voucher_value(ctx, field, obj)
 		case "executed":
 			out.Values[i] = ec._Voucher_executed(ctx, field, obj)
+		case "transactionHash":
+			out.Values[i] = ec._Voucher_transactionHash(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9092,36 +8377,21 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCompletionStatus2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx context.Context, v interface{}) (model.CompletionStatus, error) {
+func (ec *executionContext) unmarshalNCompletionStatus2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx context.Context, v interface{}) (model.CompletionStatus, error) {
 	var res model.CompletionStatus
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCompletionStatus2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx context.Context, sel ast.SelectionSet, v model.CompletionStatus) graphql.Marshaler {
+func (ec *executionContext) marshalNCompletionStatus2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐCompletionStatus(ctx context.Context, sel ast.SelectionSet, v model.CompletionStatus) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNInput2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx context.Context, sel ast.SelectionSet, v model.Input) graphql.Marshaler {
+func (ec *executionContext) marshalNInput2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx context.Context, sel ast.SelectionSet, v model.Input) graphql.Marshaler {
 	return ec._Input(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx context.Context, sel ast.SelectionSet, v *model.Input) graphql.Marshaler {
+func (ec *executionContext) marshalNInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInput(ctx context.Context, sel ast.SelectionSet, v *model.Input) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9131,11 +8401,11 @@ func (ec *executionContext) marshalNInput2ᚖgithubᚗcomᚋcalindraᚋcartesi�
 	return ec._Input(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNInputConnection2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Input]) graphql.Marshaler {
+func (ec *executionContext) marshalNInputConnection2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Input]) graphql.Marshaler {
 	return ec._InputConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNInputConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Input]) graphql.Marshaler {
+func (ec *executionContext) marshalNInputConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Input]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9145,7 +8415,7 @@ func (ec *executionContext) marshalNInputConnection2ᚖgithubᚗcomᚋcalindra�
 	return ec._InputConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Input]) graphql.Marshaler {
+func (ec *executionContext) marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Input]) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9169,7 +8439,7 @@ func (ec *executionContext) marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋca
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNInputEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNInputEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9189,7 +8459,7 @@ func (ec *executionContext) marshalNInputEdge2ᚕᚖgithubᚗcomᚋcalindraᚋca
 	return ret
 }
 
-func (ec *executionContext) marshalNInputEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Input]) graphql.Marshaler {
+func (ec *executionContext) marshalNInputEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Input]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9214,11 +8484,11 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNNotice2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐNotice(ctx context.Context, sel ast.SelectionSet, v model.Notice) graphql.Marshaler {
+func (ec *executionContext) marshalNNotice2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐNotice(ctx context.Context, sel ast.SelectionSet, v model.Notice) graphql.Marshaler {
 	return ec._Notice(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐNotice(ctx context.Context, sel ast.SelectionSet, v *model.Notice) graphql.Marshaler {
+func (ec *executionContext) marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐNotice(ctx context.Context, sel ast.SelectionSet, v *model.Notice) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9228,11 +8498,11 @@ func (ec *executionContext) marshalNNotice2ᚖgithubᚗcomᚋcalindraᚋcartesi�
 	return ec._Notice(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNNoticeConnection2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Notice]) graphql.Marshaler {
+func (ec *executionContext) marshalNNoticeConnection2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Notice]) graphql.Marshaler {
 	return ec._NoticeConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Notice]) graphql.Marshaler {
+func (ec *executionContext) marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Notice]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9242,7 +8512,7 @@ func (ec *executionContext) marshalNNoticeConnection2ᚖgithubᚗcomᚋcalindra�
 	return ec._NoticeConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Notice]) graphql.Marshaler {
+func (ec *executionContext) marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Notice]) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9266,7 +8536,7 @@ func (ec *executionContext) marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋc
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNNoticeEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNNoticeEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9286,7 +8556,7 @@ func (ec *executionContext) marshalNNoticeEdge2ᚕᚖgithubᚗcomᚋcalindraᚋc
 	return ret
 }
 
-func (ec *executionContext) marshalNNoticeEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Notice]) graphql.Marshaler {
+func (ec *executionContext) marshalNNoticeEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Notice]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9296,7 +8566,7 @@ func (ec *executionContext) marshalNNoticeEdge2ᚖgithubᚗcomᚋcalindraᚋcart
 	return ec._NoticeEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *model.PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9306,11 +8576,11 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋcalindraᚋcartes
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNReport2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐReport(ctx context.Context, sel ast.SelectionSet, v model.Report) graphql.Marshaler {
+func (ec *executionContext) marshalNReport2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐReport(ctx context.Context, sel ast.SelectionSet, v model.Report) graphql.Marshaler {
 	return ec._Report(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNReport2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐReport(ctx context.Context, sel ast.SelectionSet, v *model.Report) graphql.Marshaler {
+func (ec *executionContext) marshalNReport2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐReport(ctx context.Context, sel ast.SelectionSet, v *model.Report) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9320,11 +8590,11 @@ func (ec *executionContext) marshalNReport2ᚖgithubᚗcomᚋcalindraᚋcartesi�
 	return ec._Report(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNReportConnection2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Report]) graphql.Marshaler {
+func (ec *executionContext) marshalNReportConnection2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Report]) graphql.Marshaler {
 	return ec._ReportConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Report]) graphql.Marshaler {
+func (ec *executionContext) marshalNReportConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Report]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9334,7 +8604,7 @@ func (ec *executionContext) marshalNReportConnection2ᚖgithubᚗcomᚋcalindra�
 	return ec._ReportConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Report]) graphql.Marshaler {
+func (ec *executionContext) marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Report]) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9358,7 +8628,7 @@ func (ec *executionContext) marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋc
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNReportEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNReportEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9378,7 +8648,7 @@ func (ec *executionContext) marshalNReportEdge2ᚕᚖgithubᚗcomᚋcalindraᚋc
 	return ret
 }
 
-func (ec *executionContext) marshalNReportEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Report]) graphql.Marshaler {
+func (ec *executionContext) marshalNReportEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Report]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9403,16 +8673,16 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) unmarshalNString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
+func (ec *executionContext) unmarshalNString2ᚕstring(ctx context.Context, v interface{}) ([]string, error) {
 	var vSlice []interface{}
 	if v != nil {
 		vSlice = graphql.CoerceList(v)
 	}
 	var err error
-	res := make([]*string, len(vSlice))
+	res := make([]string, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
+		res[i], err = ec.unmarshalOString2string(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -9420,20 +8690,20 @@ func (ec *executionContext) unmarshalNString2ᚕᚖstring(ctx context.Context, v
 	return res, nil
 }
 
-func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
+func (ec *executionContext) marshalNString2ᚕstring(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	for i := range v {
-		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
+		ret[i] = ec.marshalOString2string(ctx, sel, v[i])
 	}
 
 	return ret
 }
 
-func (ec *executionContext) marshalNVoucher2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐVoucher(ctx context.Context, sel ast.SelectionSet, v model.Voucher) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucher2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐVoucher(ctx context.Context, sel ast.SelectionSet, v model.Voucher) graphql.Marshaler {
 	return ec._Voucher(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐVoucher(ctx context.Context, sel ast.SelectionSet, v *model.Voucher) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐVoucher(ctx context.Context, sel ast.SelectionSet, v *model.Voucher) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9443,11 +8713,11 @@ func (ec *executionContext) marshalNVoucher2ᚖgithubᚗcomᚋcalindraᚋcartesi
 	return ec._Voucher(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVoucherConnection2githubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Voucher]) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucherConnection2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v model.Connection[*model.Voucher]) graphql.Marshaler {
 	return ec._VoucherConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Voucher]) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConnection(ctx context.Context, sel ast.SelectionSet, v *model.Connection[*model.Voucher]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9457,7 +8727,7 @@ func (ec *executionContext) marshalNVoucherConnection2ᚖgithubᚗcomᚋcalindra
 	return ec._VoucherConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Voucher]) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Edge[*model.Voucher]) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -9481,7 +8751,7 @@ func (ec *executionContext) marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNVoucherEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalNVoucherEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -9501,7 +8771,7 @@ func (ec *executionContext) marshalNVoucherEdge2ᚕᚖgithubᚗcomᚋcalindraᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNVoucherEdge2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Voucher]) graphql.Marshaler {
+func (ec *executionContext) marshalNVoucherEdge2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐEdge(ctx context.Context, sel ast.SelectionSet, v *model.Edge[*model.Voucher]) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -9764,12 +9034,22 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) unmarshalOAddressFilterInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐAddressFilterInput(ctx context.Context, v interface{}) (*model.AddressFilterInput, error) {
+func (ec *executionContext) unmarshalOAddressFilterInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐAddressFilterInput(ctx context.Context, v interface{}) (*model.AddressFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputAddressFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOBigInt2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOBigInt2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -9798,7 +9078,7 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOBooleanFilterInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐBooleanFilterInput(ctx context.Context, v interface{}) (*model.BooleanFilterInput, error) {
+func (ec *executionContext) unmarshalOBooleanFilterInput2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐBooleanFilterInput(ctx context.Context, v interface{}) (*model.BooleanFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9806,7 +9086,7 @@ func (ec *executionContext) unmarshalOBooleanFilterInput2ᚖgithubᚗcomᚋcalin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx context.Context, v interface{}) ([]*model.ConvenientFilter, error) {
+func (ec *executionContext) unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx context.Context, v interface{}) ([]*model.ConvenientFilter, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9818,7 +9098,7 @@ func (ec *executionContext) unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcali
 	res := make([]*model.ConvenientFilter, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOConvenientFilter2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, vSlice[i])
+		res[i], err = ec.unmarshalOConvenientFilter2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -9826,7 +9106,7 @@ func (ec *executionContext) unmarshalOConvenientFilter2ᚕᚖgithubᚗcomᚋcali
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalOConvenientFilter2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx context.Context, v interface{}) (*model.ConvenientFilter, error) {
+func (ec *executionContext) unmarshalOConvenientFilter2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐConvenientFilter(ctx context.Context, v interface{}) (*model.ConvenientFilter, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9834,14 +9114,7 @@ func (ec *executionContext) unmarshalOConvenientFilter2ᚖgithubᚗcomᚋcalindr
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOInput2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInput(ctx context.Context, sel ast.SelectionSet, v *model.Input) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Input(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOInputFilter2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐInputFilter(ctx context.Context, v interface{}) (*model.InputFilter, error) {
+func (ec *executionContext) unmarshalOInputFilter2ᚖgithubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐInputFilter(ctx context.Context, v interface{}) (*model.InputFilter, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -9865,11 +9138,18 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOProof2ᚖgithubᚗcomᚋcalindraᚋcartesiᚑrollupsᚑhlᚑgraphqlᚋinternalᚋreaderᚋmodelᚐProof(ctx context.Context, sel ast.SelectionSet, v *model.Proof) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Proof(ctx, sel, v)
+func (ec *executionContext) marshalOProof2githubᚗcomᚋcalindraᚋnonodoᚋinternalᚋreaderᚋmodelᚐProof(ctx context.Context, sel ast.SelectionSet, v model.Proof) graphql.Marshaler {
+	return ec._Proof(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {

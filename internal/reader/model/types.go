@@ -5,6 +5,8 @@ package model
 
 // Request submitted to the application to advance its state
 type Input struct {
+	// ID of the input
+	ID string `json:"id"`
 	// Input index starting from genesis
 	Index int `json:"index"`
 	// Status of the input
@@ -18,6 +20,16 @@ type Input struct {
 	BlockNumber string `json:"blockNumber"`
 	// Input payload in Ethereum hex binary format, starting with '0x'
 	Payload string `json:"payload"`
+	// Timestamp associated with the Espresso input submission
+	EspressoTimestamp string `json:"espressoTimestamp"`
+	// Number of the Espresso block in which the input was recorded
+	EspressoBlockNumber string `json:"espressoBlockNumber"`
+	// Input index in the Inpux Box
+	InputBoxIndex string `json:"inputBoxIndex"`
+
+	BlockTimestamp string `json:"blockTimestamp"`
+
+	PrevRandao string `json:"prevRandao"`
 }
 
 // Representation of a transaction that can be carried out on the base layer blockchain, such as a
@@ -33,7 +45,18 @@ type Voucher struct {
 	// Transaction payload in Ethereum hex binary format, starting with '0x'
 	Payload string `json:"payload"`
 
+	Value string `json:"value"`
+
 	Executed bool `json:"executed"`
+
+	Proof Proof `json:"proof"`
+
+	TransactionHash string `json:"transactionHash"`
+}
+
+type Proof struct {
+	OutputIndex          string   `json:"outputIndex"`
+	OutputHashesSiblings []string `json:"outputHashesSiblings"`
 }
 
 // Application log or diagnostic information
@@ -54,6 +77,8 @@ type Notice struct {
 	InputIndex int
 	// Notice data as a payload in Ethereum hex binary format, starting with '0x'
 	Payload string `json:"payload"`
+	// InputId string
+	Proof Proof `json:"proof"`
 }
 
 //

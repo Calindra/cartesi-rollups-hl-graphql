@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/nonodo/internal/convenience/model"
+	"github.com/calindra/nonodo/internal/devnet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -51,7 +52,6 @@ func (s *NoticeRepositorySuite) TestFindByInputAndOutputIndex() {
 		Payload:     "0x0011",
 		InputIndex:  1,
 		OutputIndex: 2,
-		AppContract: common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
 	})
 	s.NoError(err)
 	notice, err := s.repository.FindByInputAndOutputIndex(ctx, 1, 2)
@@ -59,7 +59,6 @@ func (s *NoticeRepositorySuite) TestFindByInputAndOutputIndex() {
 	s.Equal("0x0011", notice.Payload)
 	s.Equal(1, int(notice.InputIndex))
 	s.Equal(2, int(notice.OutputIndex))
-	s.Equal("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", notice.AppContract.Hex())
 }
 
 func (s *NoticeRepositorySuite) TestCountNotices() {
@@ -137,4 +136,46 @@ func (s *NoticeRepositorySuite) TestNoticePagination() {
 	s.Equal(10, len(notices.Rows))
 	s.Equal(10, int(notices.Rows[0].InputIndex))
 	s.Equal(19, int(notices.Rows[len(notices.Rows)-1].InputIndex))
+}
+
+func (s *NoticeRepositorySuite) TestGenerateBatchNoticeKey() {
+	appContract := common.HexToAddress(devnet.ApplicationAddress)
+	var inputIndex uint64 = 0
+
+	expectedKey := appContract.Hex() + "|0"
+
+	result := GenerateBatchNoticeKey(appContract.Hex(), inputIndex)
+
+	s.Equal(expectedKey, result)
+}
+
+func (s *NoticeRepositorySuite) TestBatchFindAll() {
+	ctx := context.Background()
+	appContract := common.HexToAddress(devnet.ApplicationAddress)
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 4; j++ {
+			_, err := s.repository.Create(
+				ctx,
+				&model.ConvenienceNotice{
+					InputIndex:  uint64(i),
+					OutputIndex: uint64(j),
+					Payload:     "0x1122",
+					AppContract: appContract.Hex(),
+				})
+			s.Require().NoError(err)
+		}
+	}
+	filters := []*BatchFilterItemForNotice{
+		{
+			AppContract: appContract.Hex(),
+			InputIndex:  0,
+		},
+	}
+	results, err := s.repository.BatchFindAllNoticesByInputIndexAndAppContract(
+		ctx, filters,
+	)
+	s.Require().Equal(0, len(err))
+	s.Equal(1, len(results))
+	s.Equal(4, len(results[0].Rows))
+	s.Equal(4, int(results[0].Total))
 }

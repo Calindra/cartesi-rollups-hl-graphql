@@ -8,12 +8,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"sync"
 	"time"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
-	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
-	cRepos "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	cModel "github.com/calindra/nonodo/internal/convenience/model"
+	cRepos "github.com/calindra/nonodo/internal/convenience/repository"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
@@ -21,12 +21,14 @@ import (
 // Nonodo model shared among the internal workers.
 // The model store inputs as pointers because these pointers are shared with the rollup state.
 type NonodoModel struct {
-	mutex            sync.Mutex
-	inspects         []*InspectInput
-	state            rollupsState
-	decoder          Decoder
-	reportRepository *cRepos.ReportRepository
-	inputRepository  *cRepos.InputRepository
+	mutex             sync.Mutex
+	inspects          []*InspectInput
+	state             rollupsState
+	decoder           Decoder
+	reportRepository  *cRepos.ReportRepository
+	inputRepository   *cRepos.InputRepository
+	voucherRepository *cRepos.VoucherRepository
+	noticeRepository  *cRepos.NoticeRepository
 }
 
 func (m *NonodoModel) GetInputRepository() *cRepos.InputRepository {
@@ -38,12 +40,16 @@ func NewNonodoModel(
 	decoder Decoder,
 	reportRepository *cRepos.ReportRepository,
 	inputRepository *cRepos.InputRepository,
+	voucherRepository *cRepos.VoucherRepository,
+	noticeRepository *cRepos.NoticeRepository,
 ) *NonodoModel {
 	return &NonodoModel{
-		state:            &rollupsStateIdle{},
-		decoder:          decoder,
-		reportRepository: reportRepository,
-		inputRepository:  inputRepository,
+		state:             &rollupsStateIdle{},
+		decoder:           decoder,
+		reportRepository:  reportRepository,
+		inputRepository:   inputRepository,
+		voucherRepository: voucherRepository,
+		noticeRepository:  noticeRepository,
 	}
 }
 
@@ -54,28 +60,43 @@ func NewNonodoModel(
 // Add an advance input to the model.
 func (m *NonodoModel) AddAdvanceInput(
 	sender common.Address,
-	payload []byte,
+	payload string,
 	blockNumber uint64,
 	timestamp time.Time,
-	index int,
+	inputBoxIndex int,
+	prevRandao string,
+	appContract common.Address,
+	chainId string,
 ) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	input := cModel.AdvanceInput{
-		Index:          index,
-		Status:         cModel.CompletionStatusUnprocessed,
-		MsgSender:      sender,
-		Payload:        payload,
-		BlockTimestamp: timestamp,
-		BlockNumber:    blockNumber,
-	}
 	ctx := context.Background()
-	_, err := m.inputRepository.Create(ctx, input)
+	index, err := m.inputRepository.Count(ctx, nil)
+	if err != nil {
+		return err
+	}
+	input := cModel.AdvanceInput{
+		ID:                     strconv.Itoa(inputBoxIndex),
+		Index:                  int(index),
+		Status:                 cModel.CompletionStatusUnprocessed,
+		MsgSender:              sender,
+		Payload:                payload,
+		BlockTimestamp:         timestamp,
+		BlockNumber:            blockNumber,
+		EspressoBlockNumber:    -1,
+		EspressoBlockTimestamp: time.Unix(-1, 0),
+		InputBoxIndex:          inputBoxIndex,
+		PrevRandao:             prevRandao,
+		ChainId:                chainId,
+		AppContract:            appContract,
+	}
+
+	_, err = m.inputRepository.Create(ctx, input)
 	if err != nil {
 		return err
 	}
 	slog.Info("nonodo: added advance input", "index", input.Index, "sender", input.MsgSender,
-		"payload", hexutil.Encode(input.Payload))
+		"payload", input.Payload)
 	return nil
 }
 
@@ -160,6 +181,8 @@ func (m *NonodoModel) FinishAndGetNext(accepted bool) (cModel.Input, error) {
 			m.decoder,
 			m.reportRepository,
 			m.inputRepository,
+			m.voucherRepository,
+			m.noticeRepository,
 		)
 		return *input, nil
 	}
@@ -172,30 +195,30 @@ func (m *NonodoModel) FinishAndGetNext(accepted bool) (cModel.Input, error) {
 // Add a voucher to the model.
 // Return the voucher index within the input.
 // Return an error if the state isn't advance.
-func (m *NonodoModel) AddVoucher(destination common.Address, payload []byte) (int, error) {
+func (m *NonodoModel) AddVoucher(appAddress common.Address, destination common.Address, value string, payload []byte) (int, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.state.addVoucher(destination, payload)
+	return m.state.addVoucher(appAddress, destination, value, payload)
 }
 
 // Add a notice to the model.
 // Return the notice index within the input.
 // Return an error if the state isn't advance.
-func (m *NonodoModel) AddNotice(payload []byte) (int, error) {
+func (m *NonodoModel) AddNotice(payload []byte, appAddress common.Address) (int, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.state.addNotice(payload)
+	return m.state.addNotice(payload, appAddress)
 }
 
 // Add a report to the model.
 // Return an error if the state isn't advance or inspect.
-func (m *NonodoModel) AddReport(payload []byte) error {
+func (m *NonodoModel) AddReport(appAddress common.Address, payload []byte) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	return m.state.addReport(payload)
+	return m.state.addReport(appAddress, payload)
 }
 
 // Finish the current input with an exception.
@@ -220,10 +243,10 @@ func (m *NonodoModel) RegisterException(payload []byte) error {
 
 func (m *NonodoModel) getProcessedInputCount() (int, error) {
 	ctx := context.Background()
-	filter := []*model.ConvenienceFilter{}
+	filter := []*cModel.ConvenienceFilter{}
 	field := "Status"
 	value := fmt.Sprintf("%d", cModel.CompletionStatusUnprocessed)
-	filter = append(filter, &model.ConvenienceFilter{
+	filter = append(filter, &cModel.ConvenienceFilter{
 		Field: &field,
 		Ne:    &value,
 	})

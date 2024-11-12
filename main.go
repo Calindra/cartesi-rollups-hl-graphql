@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,12 +17,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/dataavailability"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/nonodo"
+	"github.com/calindra/nonodo/internal/dataavailability"
+	"github.com/calindra/nonodo/internal/devnet"
+	"github.com/calindra/nonodo/internal/nonodo"
+	"github.com/calindra/nonodo/internal/sequencers/avail"
+	"github.com/calindra/nonodo/internal/sequencers/espresso"
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
@@ -32,12 +36,25 @@ var (
 	APP_ADDRESS          = common.HexToAddress(devnet.ApplicationAddress)
 )
 
+var inspectMessageText = `
+Inspect running at http://localhost:HTTP_PORT/inspect/`
+
 var startupMessage = `
 Http Rollups for development started at http://localhost:ROLLUPS_PORT
 GraphQL running at http://localhost:HTTP_PORT/graphql
-Inspect running at http://localhost:HTTP_PORT/inspect/
+INSPECT_MESSAGE
 Press Ctrl+C to stop the node
 `
+
+var startupMessageWithLambada = `
+Http Rollups for development started at http://localhost:ROLLUPS_PORT
+GraphQL running at http://localhost:HTTP_PORT/graphql
+INSPECT_MESSAGE
+Lambada running at http://SALSA_URL
+Press Ctrl+C to stop the node
+`
+
+var tempFromBlockL1 uint64
 
 var cmd = &cobra.Command{
 	Use:     "nonodo [flags] [-- application [args]...]",
@@ -88,10 +105,36 @@ type CelestiaOpts struct {
 	chainId     int64
 }
 
+// Espresso
+type EspressoOpts struct {
+	Payload   string
+	Namespace int
+}
+
 var celestiaCmd = &cobra.Command{
 	Use:   "celestia",
 	Short: "Handle blob to Celestia",
 	Long:  "Submit a blob and check proofs after one hour to Celestia Network",
+}
+
+var espressoCmd = &cobra.Command{
+	Use:   "espresso",
+	Short: "Handles Espresso transactions",
+	Long:  "Submit and get a transaction from Espresso using Cappuccino APIs",
+}
+
+type AvailOpts struct {
+	Payload     string
+	ChainId     int
+	AppId       int
+	Address     string
+	MaxGasPrice uint64
+}
+
+var availCmd = &cobra.Command{
+	Use:   "avail",
+	Short: "Handles Avail transactions",
+	Long:  "Submit a transaction to Avail",
 }
 
 var (
@@ -323,6 +366,66 @@ func downloadFile(ctx context.Context, url string) ([]byte, error) {
 	return content, nil
 }
 
+func addEspressoSubcommands(espressoCmd *cobra.Command) {
+	espressoOpts := &EspressoOpts{}
+	// Send
+	espressoSendCmd := &cobra.Command{
+		Use:   "send",
+		Short: "Send a payload to Espresso",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			espressoClient := espresso.EspressoClient{
+				EspressoUrl: opts.EspressoUrl,
+				GraphQLUrl:  fmt.Sprintf("http://%s:%d", opts.HttpAddress, opts.HttpPort),
+			}
+			_, err := espressoClient.SendInput(espressoOpts.Payload, espressoOpts.Namespace)
+			if err != nil {
+				panic(err)
+			}
+			return nil
+		},
+	}
+	espressoSendCmd.Flags().StringVar(&espressoOpts.Payload, "payload", "", "Payload to send to Espresso")
+	espressoSendCmd.Flags().IntVar(&espressoOpts.Namespace, "namespace", int(opts.Namespace), "Namespace of the payload")
+	markFlagRequired(espressoSendCmd, "payload")
+	espressoCmd.AddCommand(espressoSendCmd)
+}
+
+func addAvailSubcommands(availCmd *cobra.Command) {
+
+	availOpts := &AvailOpts{}
+
+	availSendCmd := &cobra.Command{
+		Use:   "send",
+		Short: "Send a payload to Avail",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := context.WithCancel(cmd.Context())
+			defer cancel()
+			availClient, err := avail.NewAvailClient(
+				fmt.Sprintf("http://%s:%d", opts.HttpAddress, opts.HttpPort),
+				availOpts.ChainId,
+				availOpts.AppId,
+			)
+			if err != nil {
+				panic(err)
+			}
+			_, err = availClient.Submit712(ctx, availOpts.Payload, availOpts.Address, availOpts.MaxGasPrice)
+			if err != nil {
+				panic(err)
+			}
+			return nil
+
+		},
+	}
+	availSendCmd.Flags().StringVar(&availOpts.Payload, "payload", "", "Payload to send to Avail")
+	availSendCmd.Flags().IntVar(&availOpts.ChainId, "chainId", avail.DEFAULT_CHAINID_HARDHAT, "ChainId used signing EIP-712 messages")
+	availSendCmd.Flags().IntVar(&availOpts.AppId, "appId", avail.DEFAULT_APP_ID, "Avail AppId")
+	defaultMaxGasPrice := 10
+	availSendCmd.Flags().StringVar(&availOpts.Address, "address", devnet.ApplicationAddress, "Address of the dapp")
+	availSendCmd.Flags().Uint64Var(&availOpts.MaxGasPrice, "max-gas-price", uint64(defaultMaxGasPrice), "Max gas price")
+	markFlagRequired(availSendCmd, "payload")
+	availCmd.AddCommand(availSendCmd)
+}
+
 func readFile(_ context.Context, path string) ([]byte, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -381,8 +484,12 @@ func init() {
 
 	cmd.Flags().StringVar(&opts.Sequencer, "sequencer", opts.Sequencer,
 		"Set the sequencer (inputbox[default] or espresso)")
+	cmd.Flags().StringVar(&opts.EspressoUrl, "espresso-url", opts.EspressoUrl,
+		"Set the Espresso base url")
+
 	cmd.Flags().Uint64Var(&opts.Namespace, "namespace", opts.Namespace,
 		"Set the namespace for espresso")
+	cmd.Flags().DurationVar(&opts.TimeoutWorker, "timeout-worker", opts.TimeoutWorker, "Timeout for workers. Example: nonodo --timeout-worker 30s")
 	cmd.Flags().DurationVar(&opts.TimeoutInspect, "sm-deadline-inspect-state", opts.TimeoutInspect, "Timeout for inspect requests. Example: nonodo --sm-deadline-inspect-state 30s")
 	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: nonodo --sm-deadline-advance-state 30s")
 
@@ -391,6 +498,8 @@ func init() {
 		"If set, nonodo won't start a local devnet")
 	cmd.Flags().BoolVar(&opts.DisableAdvance, "disable-advance", opts.DisableAdvance,
 		"If set, nonodo won't start the inputter to get inputs from the local chain")
+	cmd.Flags().BoolVar(&opts.DisableInspect, "disable-inspect", opts.DisableInspect,
+		"If set, nonodo won't accept inspect inputs")
 
 	// http-*
 	cmd.Flags().StringVar(&opts.HttpAddress, "http-address", opts.HttpAddress,
@@ -415,6 +524,8 @@ func init() {
 	cmd.Flags().Uint64Var(&opts.FromBlock, "from-block", opts.FromBlock,
 		"The beginning of the queried range for events")
 
+	cmd.Flags().Uint64VarP(&tempFromBlockL1, "from-l1-block", "", 0, "The beginning of the queried range for events")
+
 	cmd.Flags().StringVar(&opts.DbImplementation, "db-implementation", opts.DbImplementation,
 		"DB to use. PostgreSQL or SQLite")
 
@@ -428,6 +539,21 @@ func init() {
 		"If set, disable graphile synchronization")
 
 	cmd.Flags().StringVar(&opts.GraphileUrl, "graphile-url", opts.GraphileUrl, "URL used to connect to Graphile")
+
+	cmd.Flags().BoolVar(&opts.Salsa, "salsa", opts.Salsa, "If set, starts salsa")
+
+	cmd.Flags().StringVar(&opts.SalsaUrl, "salsa-url", opts.SalsaUrl, "Url used to start Salsa")
+	cmd.Flags().BoolVar(&opts.AvailEnabled, "avail-enabled", opts.AvailEnabled, "If set, enables Avail with Paio's sequencer")
+	cmd.Flags().Uint64Var(&opts.AvailFromBlock, "avail-from-block", opts.AvailFromBlock, "The beginning of the queried range for events")
+
+	cmd.Flags().StringVar(&opts.PaioServerUrl, "paio-server-url", opts.PaioServerUrl, "The Paio's server url")
+
+	cmd.Flags().StringVar(&opts.DbRawUrl, "db-raw-url", opts.DbRawUrl, "The raw database url")
+	cmd.Flags().BoolVar(&opts.RawEnabled, "raw-enabled", opts.RawEnabled, "If set, enables raw database")
+
+	cmd.Flags().IntVar(&opts.EpochBlocks, "epoch-blocks", opts.EpochBlocks,
+		"Number of blocks in each epoch")
+
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -452,11 +578,14 @@ func run(cmd *cobra.Command, args []string) {
 	if opts.AnvilPort == 0 {
 		exitf("--anvil-port cannot be 0")
 	}
-	if cmd.Flags().Changed("rpc-url") && !cmd.Flags().Changed("contracts-input-box-block") {
+	if !cmd.Flags().Changed("sequencer") && cmd.Flags().Changed("rpc-url") && !cmd.Flags().Changed("contracts-input-box-block") {
 		exitf("must set --contracts-input-box-block when setting --rpc-url")
 	}
 	if opts.EnableEcho && len(args) > 0 {
 		exitf("can't use built-in echo with custom application")
+	}
+	if cmd.Flags().Changed("from-l1-block") {
+		opts.FromBlockL1 = &tempFromBlockL1
 	}
 	opts.ApplicationArgs = args
 
@@ -464,15 +593,36 @@ func run(cmd *cobra.Command, args []string) {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	var startMessage string
+
+	if opts.Salsa {
+		startMessage = startupMessageWithLambada
+	} else {
+		startMessage = startupMessage
+	}
+
+	var inspectMessage string
+	if !opts.DisableInspect {
+		inspectMessage = inspectMessageText
+	}
+
 	// start nonodo
 	ready := make(chan struct{}, 1)
 	go func() {
 		select {
 		case <-ready:
 			msg := strings.Replace(
-				startupMessage,
+				startMessage,
+				"\nINSPECT_MESSAGE",
+				inspectMessage, -1)
+			msg = strings.Replace(
+				msg,
 				"HTTP_PORT",
 				fmt.Sprint(opts.HttpPort), -1)
+			msg = strings.Replace(
+				msg,
+				"SALSA_URL",
+				fmt.Sprint(opts.SalsaUrl), -1)
 			msg = strings.Replace(
 				msg,
 				"ROLLUPS_PORT",
@@ -482,18 +632,50 @@ func run(cmd *cobra.Command, args []string) {
 		case <-ctx.Done():
 		}
 	}()
+	LoadEnv()
 	if opts.HLGraphQL {
 		err := nonodo.NewSupervisorHLGraphQL(opts).Start(ctx, ready)
 		cobra.CheckErr(err)
 	} else {
+		opts.AutoCount = true // not check the Idempotency
 		err := nonodo.NewSupervisor(opts).Start(ctx, ready)
 		cobra.CheckErr(err)
 	}
 }
 
+//go:embed .env
+var envBuilded string
+
+// LoadEnv from embedded .env file
+func LoadEnv() {
+	currentEnv := map[string]bool{}
+	rawEnv := os.Environ()
+	for _, rawEnvLine := range rawEnv {
+		key := strings.Split(rawEnvLine, "=")[0]
+		currentEnv[key] = true
+	}
+
+	parse, err := godotenv.Unmarshal(envBuilded)
+	cobra.CheckErr(err)
+
+	for k, v := range parse {
+		if !currentEnv[k] {
+			slog.Debug("env: setting env", "key", k, "value", v)
+			err := os.Setenv(k, v)
+			cobra.CheckErr(err)
+		} else {
+			slog.Debug("env: skipping env", "key", k)
+		}
+	}
+
+	slog.Debug("env: loaded")
+}
+
 func main() {
 	addCelestiaSubcommands(celestiaCmd)
-	cmd.AddCommand(addressBookCmd, celestiaCmd, CompletionCmd)
+	addEspressoSubcommands(espressoCmd)
+	addAvailSubcommands(availCmd)
+	cmd.AddCommand(addressBookCmd, celestiaCmd, CompletionCmd, espressoCmd, availCmd)
 	cobra.CheckErr(cmd.Execute())
 }
 

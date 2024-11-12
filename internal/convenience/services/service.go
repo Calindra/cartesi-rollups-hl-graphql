@@ -4,16 +4,17 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/nonodo/internal/convenience/model"
+	"github.com/calindra/nonodo/internal/convenience/repository"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type ConvenienceService struct {
-	voucherRepository *repository.VoucherRepository
-	noticeRepository  *repository.NoticeRepository
-	inputRepository   *repository.InputRepository
-	reportRepository  *repository.ReportRepository
+	VoucherRepository *repository.VoucherRepository
+	NoticeRepository  *repository.NoticeRepository
+	InputRepository   *repository.InputRepository
+	ReportRepository  *repository.ReportRepository
 }
 
 func NewConvenienceService(
@@ -23,10 +24,10 @@ func NewConvenienceService(
 	reportRepository *repository.ReportRepository,
 ) *ConvenienceService {
 	return &ConvenienceService{
-		voucherRepository: voucherRepository,
-		noticeRepository:  noticeRepository,
-		inputRepository:   inputRepository,
-		reportRepository:  reportRepository,
+		VoucherRepository: voucherRepository,
+		NoticeRepository:  noticeRepository,
+		InputRepository:   inputRepository,
+		ReportRepository:  reportRepository,
 	}
 }
 
@@ -34,14 +35,14 @@ func (s *ConvenienceService) CreateVoucher1(
 	ctx context.Context,
 	voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
-	return s.voucherRepository.CreateVoucher(ctx, voucher)
+	return s.VoucherRepository.CreateVoucher(ctx, voucher)
 }
 
 func (s *ConvenienceService) CreateNotice(
 	ctx context.Context,
 	notice *model.ConvenienceNotice,
 ) (*model.ConvenienceNotice, error) {
-	noticeInDb, err := s.noticeRepository.FindByInputAndOutputIndex(
+	noticeInDb, err := s.NoticeRepository.FindByInputAndOutputIndex(
 		ctx, notice.InputIndex, notice.OutputIndex,
 	)
 	if err != nil {
@@ -49,9 +50,9 @@ func (s *ConvenienceService) CreateNotice(
 	}
 
 	if noticeInDb != nil {
-		return s.noticeRepository.Update(ctx, notice)
+		return s.NoticeRepository.Update(ctx, notice)
 	}
-	return s.noticeRepository.Create(ctx, notice)
+	return s.NoticeRepository.Create(ctx, notice)
 }
 
 func (s *ConvenienceService) CreateVoucher(
@@ -59,7 +60,7 @@ func (s *ConvenienceService) CreateVoucher(
 	voucher *model.ConvenienceVoucher,
 ) (*model.ConvenienceVoucher, error) {
 
-	voucherInDb, err := s.voucherRepository.FindVoucherByInputAndOutputIndex(
+	voucherInDb, err := s.VoucherRepository.FindVoucherByInputAndOutputIndex(
 		ctx, voucher.InputIndex,
 		voucher.OutputIndex,
 	)
@@ -69,33 +70,34 @@ func (s *ConvenienceService) CreateVoucher(
 	}
 
 	if voucherInDb != nil {
-		return s.voucherRepository.UpdateVoucher(ctx, voucher)
+		return s.VoucherRepository.UpdateVoucher(ctx, voucher)
 	}
 
-	return s.voucherRepository.CreateVoucher(ctx, voucher)
+	return s.VoucherRepository.CreateVoucher(ctx, voucher)
 }
 
 func (s *ConvenienceService) CreateInput(
 	ctx context.Context,
 	input *model.AdvanceInput,
 ) (*model.AdvanceInput, error) {
-	inputInDb, err := s.inputRepository.FindByIndex(ctx, input.Index)
+
+	inputInDb, err := s.InputRepository.FindByIDAndAppContract(ctx, input.ID, &input.AppContract)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if inputInDb != nil {
-		return s.inputRepository.Update(ctx, *input)
+		return s.InputRepository.Update(ctx, *input)
 	}
-	return s.inputRepository.Create(ctx, *input)
+	return s.InputRepository.Create(ctx, *input)
 }
 
 func (s *ConvenienceService) CreateReport(
 	ctx context.Context,
 	report *model.Report,
 ) (*model.Report, error) {
-	reportInDb, err := s.reportRepository.FindByInputAndOutputIndex(ctx,
+	reportInDb, err := s.ReportRepository.FindByInputAndOutputIndex(ctx,
 		uint64(report.InputIndex),
 		uint64(report.Index),
 	)
@@ -108,9 +110,9 @@ func (s *ConvenienceService) CreateReport(
 			"inputIndex", report.InputIndex,
 			"outputIndex", report.Index,
 		)
-		return s.reportRepository.Update(ctx, *reportInDb)
+		return s.ReportRepository.Update(ctx, *reportInDb)
 	}
-	reportCreated, err := s.reportRepository.Create(ctx, *report)
+	reportCreated, err := s.ReportRepository.CreateReport(ctx, *report)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +125,7 @@ func (c *ConvenienceService) UpdateExecuted(
 	outputIndex uint64,
 	executedValue bool,
 ) error {
-	return c.voucherRepository.UpdateExecuted(
+	return c.VoucherRepository.UpdateExecuted(
 		ctx,
 		inputIndex,
 		outputIndex,
@@ -139,7 +141,7 @@ func (c *ConvenienceService) FindAllVouchers(
 	before *string,
 	filter []*model.ConvenienceFilter,
 ) (*commons.PageResult[model.ConvenienceVoucher], error) {
-	return c.voucherRepository.FindAllVouchers(
+	return c.VoucherRepository.FindAllVouchers(
 		ctx,
 		first,
 		last,
@@ -157,7 +159,7 @@ func (c *ConvenienceService) FindAllNotices(
 	before *string,
 	filter []*model.ConvenienceFilter,
 ) (*commons.PageResult[model.ConvenienceNotice], error) {
-	return c.noticeRepository.FindAllNotices(
+	return c.NoticeRepository.FindAllNotices(
 		ctx,
 		first,
 		last,
@@ -175,7 +177,7 @@ func (c *ConvenienceService) FindAllInputs(
 	before *string,
 	filter []*model.ConvenienceFilter,
 ) (*commons.PageResult[model.AdvanceInput], error) {
-	return c.inputRepository.FindAll(
+	return c.InputRepository.FindAll(
 		ctx,
 		first,
 		last,
@@ -193,7 +195,7 @@ func (c *ConvenienceService) FindAllByInputIndex(
 	before *string,
 	inputIndex *int,
 ) (*commons.PageResult[model.Report], error) {
-	return c.reportRepository.FindAllByInputIndex(
+	return c.ReportRepository.FindAllByInputIndex(
 		ctx,
 		first,
 		last,
@@ -203,24 +205,36 @@ func (c *ConvenienceService) FindAllByInputIndex(
 	)
 }
 
+func (c *ConvenienceService) FindVoucherByOutputIndexAndAppContract(
+	ctx context.Context, outputIndex uint64,
+	appContract *common.Address,
+) (*model.ConvenienceVoucher, error) {
+	return c.VoucherRepository.FindVoucherByOutputIndexAndAppContract(
+		ctx, outputIndex, appContract,
+	)
+}
+
 func (c *ConvenienceService) FindVoucherByInputAndOutputIndex(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 ) (*model.ConvenienceVoucher, error) {
-	return c.voucherRepository.FindVoucherByInputAndOutputIndex(
+	return c.VoucherRepository.FindVoucherByInputAndOutputIndex(
 		ctx, inputIndex, outputIndex,
+	)
+}
+
+func (c *ConvenienceService) FindNoticeByOutputIndexAndAppContract(
+	ctx context.Context, outputIndex uint64,
+	appContract *common.Address,
+) (*model.ConvenienceNotice, error) {
+	return c.NoticeRepository.FindNoticeByOutputIndexAndAppContract(
+		ctx, outputIndex, appContract,
 	)
 }
 
 func (c *ConvenienceService) FindNoticeByInputAndOutputIndex(
 	ctx context.Context, inputIndex uint64, outputIndex uint64,
 ) (*model.ConvenienceNotice, error) {
-	return c.noticeRepository.FindByInputAndOutputIndex(
+	return c.NoticeRepository.FindByInputAndOutputIndex(
 		ctx, inputIndex, outputIndex,
 	)
-}
-
-func (c *ConvenienceService) FindInputByIndex(
-	ctx context.Context, index int,
-) (*model.AdvanceInput, error) {
-	return c.inputRepository.FindByIndex(ctx, index)
 }

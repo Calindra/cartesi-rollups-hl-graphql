@@ -39,6 +39,8 @@ type InputFilter struct {
 	IndexGreaterThan *int `json:"indexGreaterThan,omitempty"`
 	// Filter only inputs with the message sender
 	MsgSender *string `json:"msgSender,omitempty"`
+	// Filter only inputs from 'inputbox' or 'espresso'
+	Type *string `json:"type,omitempty"`
 }
 
 // Page metadata for the cursor-based Connection pagination pattern
@@ -51,25 +53,6 @@ type PageInfo struct {
 	HasNextPage bool `json:"hasNextPage"`
 	// Indicates if there are additional entries before the start curs
 	HasPreviousPage bool `json:"hasPreviousPage"`
-}
-
-// Data that can be used as proof to validate notices and execute vouchers on the base layer blockchain
-type Proof struct {
-	FirstIndex int `json:"firstIndex"`
-	// Reads a single `Input` that is related to this `Proof`.
-	InputByInputIndex *Input `json:"inputByInputIndex,omitempty"`
-	InputIndex        int    `json:"inputIndex"`
-	LastInput         int    `json:"lastInput"`
-	// A globally unique identifier. Can be used in various places throughout the system to identify this single value.
-	NodeID                                   string    `json:"nodeId"`
-	OutputIndex                              int       `json:"outputIndex"`
-	ValidityInputIndexWithinEpoch            int       `json:"validityInputIndexWithinEpoch"`
-	ValidityMachineStateHash                 string    `json:"validityMachineStateHash"`
-	ValidityOutputEpochRootHash              string    `json:"validityOutputEpochRootHash"`
-	ValidityOutputHashInOutputHashesSiblings []*string `json:"validityOutputHashInOutputHashesSiblings"`
-	ValidityOutputHashesInEpochSiblings      []*string `json:"validityOutputHashesInEpochSiblings"`
-	ValidityOutputHashesRootHash             string    `json:"validityOutputHashesRootHash"`
-	ValidityOutputIndexWithinInput           int       `json:"validityOutputIndexWithinInput"`
 }
 
 type CompletionStatus string

@@ -4,17 +4,20 @@
 package devnet
 
 // Input box address in devnet.
-// const InputBoxAddress = "0x59b22D57D4f067708AB0c00552767405926dc768"
-const InputBoxAddress = "0x58Df21fE097d4bE5dCf61e01d9ea3f6B81c2E1dB"
+// v2.0.0-rc.10
+const InputBoxAddress = "0x593E5BCf894D6829Dd26D0810DA7F064406aebB6"
 
-const ApplicationContractName = "CartesiDApp"
+const ApplicationContractName = "Application"
 
 // Application address in devnet.
 // sunodo v0.10.4
 // const ApplicationAddress = "0x70ac08179605AF2D9e75782b8DEcDD3c22aA4D0C"
 
 // sunodo v0.11.2
-const ApplicationAddress = "0xab7528bb862fb57e8a2bcd567a2e929a0be56a5e"
+// const ApplicationAddress = "0xab7528bb862fb57e8a2bcd567a2e929a0be56a5e"
+
+// nonodo
+const ApplicationAddress = "0x75135d8ADb7180640d29d822D9AD59E83E8695b2"
 
 // Foundry test mnemonic.
 const TestMnemonic = "test test test test test test test test test test test junk"

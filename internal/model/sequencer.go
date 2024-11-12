@@ -73,6 +73,8 @@ func FinishAndGetNext(m *NonodoModel, accept bool) (cModel.Input, error) {
 			m.decoder,
 			m.reportRepository,
 			m.inputRepository,
+			m.voucherRepository,
+			m.noticeRepository,
 		)
 		return *input, nil
 	}

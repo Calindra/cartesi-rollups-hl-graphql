@@ -12,15 +12,17 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/inspect"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/readerclient"
+	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/nonodo/internal/convenience/model"
+	"github.com/calindra/nonodo/internal/devnet"
+	"github.com/calindra/nonodo/internal/inspect"
+	"github.com/calindra/nonodo/internal/readerclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/suite"
@@ -45,7 +47,6 @@ type NonodoSuite struct {
 //
 
 func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
-	// defer s.teardown()
 	opts := NewNonodoOpts()
 	// we are using file cuz there is problem with memory
 	// no such table: reports
@@ -54,7 +55,7 @@ func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
 	sqliteFileName := fmt.Sprintf("test%d.sqlite3", time.Now().UnixMilli())
 	opts.EnableEcho = true
 	opts.SqliteFile = path.Join(tempDir, sqliteFileName)
-	s.setupTest(opts)
+	s.setupTest(&opts)
 	defer os.RemoveAll(tempDir)
 	s.T().Log("sending advance inputs")
 	const n = 3
@@ -62,96 +63,65 @@ func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
 	for i := 0; i < n; i++ {
 		payloads[i] = s.makePayload()
 		err := devnet.AddInput(s.ctx, s.rpcUrl, payloads[i][:])
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 
 	s.T().Log("waiting until last input is ready")
 	err = s.waitForAdvanceInput(n - 1)
 	s.NoError(err)
 
+	s.T().Log("inserting proofs")
+	db := CreateDBInstance(opts)
+	_, err = db.Exec(`update vouchers set output_hashes_siblings = $1`, `["0x11","0x22","0x33"]`)
+	s.NoError(err)
+	_, err = db.Exec(`update notices set output_hashes_siblings = $1`, `["0x1111","0x2222","0x3333"]`)
+	s.NoError(err)
+
 	s.T().Log("verifying node state")
 	response, err := readerclient.State(s.ctx, s.graphqlClient)
-	s.NoError(err)
+	s.Require().NoError(err)
 	for i := 0; i < n; i++ {
 		input := response.Inputs.Edges[i].Node
 		s.Equal(i, input.Index)
 		s.Equal(payloads[i][:], s.decodeHex(input.Payload))
 		s.Equal(devnet.SenderAddress, input.MsgSender)
+
+		// check voucher
 		voucher := input.Vouchers.Edges[0].Node
-		s.Equal(payloads[i][:], s.decodeHex(voucher.Payload))
+		s.Equal(model.VOUCHER_SELECTOR, voucher.Payload[2:10])
+		s.True(strings.HasSuffix(voucher.Payload, common.Bytes2Hex(payloads[i][:]))) // should ends with
 		s.Equal(devnet.SenderAddress, voucher.Destination)
-		s.Equal(common.Bytes2Hex(payloads[i][:])+"ff",
-			input.Notices.Edges[0].Node.Payload[2:])
+		s.Equal(3, len(voucher.Proof.OutputHashesSiblings))
+
+		// check notice
+		notice := input.Notices.Edges[0].Node
+		s.Equal(model.NOTICE_SELECTOR, notice.Payload[2:10])
+		s.Contains(notice.Payload, common.Bytes2Hex(payloads[i][:])+"ff")
+		s.Equal(3, len(notice.Proof.OutputHashesSiblings))
+
+		// check report
 		s.Equal(payloads[i][:], s.decodeHex(input.Reports.Edges[0].Node.Payload))
 	}
-}
 
-func (s *NonodoSuite) TestGraphQLVoucher() {
-	opts := NewNonodoOpts()
-	// we are using file cuz there is problem with memory
-	// no such table: reports
-	tempDir, err := os.MkdirTemp("", "")
+	s.T().Log("query graphql state with new graphql path pattern (no results)")
+	graphqlEndpoint := fmt.Sprintf("http://%s:%v/graphql/%s", opts.HttpAddress, opts.HttpPort, common.Address{}.Hex())
+	graphqlClient := graphql.NewClient(graphqlEndpoint, nil)
+	response2, err := readerclient.State(s.ctx, graphqlClient)
 	s.NoError(err)
-	sqliteFileName := fmt.Sprintf("test%d.sqlite3", time.Now().UnixMilli())
-	opts.EnableEcho = true
-	opts.SqliteFile = path.Join(tempDir, sqliteFileName)
-	s.setupTest(opts)
-	defer os.RemoveAll(tempDir)
-	s.T().Log("sending advance inputs")
-	const n = 3
-	var payloads [n][32]byte
-	for i := 0; i < n; i++ {
-		payloads[i] = s.makePayload()
-		err := devnet.AddInput(s.ctx, s.rpcUrl, payloads[i][:])
-		s.NoError(err)
-	}
+	s.Equal(0, len(response2.Inputs.Edges))
 
-	s.T().Log("waiting until last input is ready")
-	err = s.waitForAdvanceInput(n - 1)
+	s.T().Log("query graphql state with new graphql path pattern")
+	graphqlEndpoint3 := fmt.Sprintf("http://%s:%v/graphql/%s", opts.HttpAddress, opts.HttpPort, devnet.ApplicationAddress)
+	graphqlClient3 := graphql.NewClient(graphqlEndpoint3, nil)
+	response3, err := readerclient.State(s.ctx, graphqlClient3)
 	s.NoError(err)
-
-	s.T().Log("verifying voucher")
-	voucher, err := readerclient.GetVoucher(s.ctx, s.graphqlClient, 0, 1)
-	s.NoError(err)
-	s.Equal(payloads[1][:], s.decodeHex(voucher.Voucher.Payload))
-}
-
-func (s *NonodoSuite) TestGraphQLNotice() {
-	opts := NewNonodoOpts()
-	// we are using file cuz there is problem with memory
-	// no such table: reports
-	tempDir, err := os.MkdirTemp("", "")
-	s.NoError(err)
-	sqliteFileName := fmt.Sprintf("test%d.sqlite3", time.Now().UnixMilli())
-	opts.EnableEcho = true
-	opts.SqliteFile = path.Join(tempDir, sqliteFileName)
-	s.setupTest(opts)
-	defer os.RemoveAll(tempDir)
-	s.T().Log("sending advance inputs")
-	const n = 3
-	var payloads [n][32]byte
-	for i := 0; i < n; i++ {
-		payloads[i] = s.makePayload()
-		err := devnet.AddInput(s.ctx, s.rpcUrl, payloads[i][:])
-		s.NoError(err)
-	}
-
-	s.T().Log("waiting until last input is ready")
-	err = s.waitForAdvanceInput(n - 1)
-	s.NoError(err)
-
-	s.T().Log("verifying voucher")
-	notice, err := readerclient.GetNotice(s.ctx, s.graphqlClient, 0, 1)
-	s.NoError(err)
-	s.Equal(common.Bytes2Hex(payloads[1][:])+"ff",
-		notice.Notice.Payload[2:])
+	s.Equal(3, len(response3.Inputs.Edges))
 }
 
 func (s *NonodoSuite) TestItProcessesInspectInputs() {
-	// defer s.teardown()
 	opts := NewNonodoOpts()
 	opts.EnableEcho = true
-	s.setupTest(opts)
+	s.setupTest(&opts)
 
 	s.T().Log("sending inspect inputs")
 	const n = 3
@@ -168,16 +138,40 @@ func (s *NonodoSuite) TestItProcessesInspectInputs() {
 	}
 }
 
+func (s *NonodoSuite) TestItWorksWithExternalApplication() {
+	opts := NewNonodoOpts()
+	opts.ApplicationArgs = []string{
+		"go",
+		"run",
+		"github.com/calindra/nonodo/internal/echoapp/echoapp",
+		"--endpoint",
+		fmt.Sprintf("http://%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
+	}
+	opts.HttpPort = 8090
+	s.setupTest(&opts)
+	time.Sleep(100 * time.Millisecond)
+
+	s.T().Log("sending inspect to external application")
+	payload := s.makePayload()
+
+	response, err := s.sendInspect(payload[:])
+	s.NoError(err)
+	slog.Debug("response", "body", string(response.Body))
+	s.Require().Equal(http.StatusOK, response.StatusCode())
+	s.Require().Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
+}
+
 //
 // Setup and tear down
 //
 
 // Setup the nonodo suite.
 // This method requires the nonodo options, so each test must call it explicitly.
-func (s *NonodoSuite) setupTest(opts NonodoOpts) {
+func (s *NonodoSuite) setupTest(opts *NonodoOpts) {
 	s.nonce += 1
 	opts.AnvilPort += s.nonce
 	opts.HttpPort += s.nonce + 100
+	opts.AnvilCommand = "anvil"
 	s.T().Log("ports", "http", opts.HttpPort, "anvil", opts.AnvilPort)
 	commons.ConfigureLog(slog.LevelDebug)
 	s.ctx, s.timeoutCancel = context.WithTimeout(context.Background(), testTimeout)
@@ -186,7 +180,7 @@ func (s *NonodoSuite) setupTest(opts NonodoOpts) {
 	var workerCtx context.Context
 	workerCtx, s.workerCancel = context.WithCancel(s.ctx)
 
-	w := NewSupervisor(opts)
+	w := NewSupervisor(*opts)
 
 	ready := make(chan struct{})
 	go func() {
@@ -234,7 +228,7 @@ func (s *NonodoSuite) waitForAdvanceInput(inputIndex int) error {
 	const pollInterval = 15 * time.Millisecond
 	time.Sleep(100 * time.Millisecond)
 	for i := 0; i < pollRetries; i++ {
-		result, err := readerclient.InputStatus(s.ctx, s.graphqlClient, inputIndex)
+		result, err := readerclient.InputStatus(s.ctx, s.graphqlClient, strconv.Itoa(inputIndex))
 		if err != nil && !strings.Contains(err.Error(), "input not found") {
 			return fmt.Errorf("failed to get input status: %w", err)
 		}
@@ -270,6 +264,7 @@ func (s *NonodoSuite) decodeHex(value string) []byte {
 func (s *NonodoSuite) sendInspect(payload []byte) (*inspect.InspectPostResponse, error) {
 	return s.inspectClient.InspectPostWithBodyWithResponse(
 		s.ctx,
+		devnet.ApplicationAddress,
 		"application/octet-stream",
 		bytes.NewReader(payload),
 	)

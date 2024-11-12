@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"math/big"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
@@ -41,7 +42,7 @@ func (o *OutputDecoder) HandleOutput(
 	// https://github.com/cartesi/rollups-contracts/issues/42#issuecomment-1694932058
 	// detect the output type Voucher | Notice
 	// 0xc258d6e5 for Notice
-	// 0xef615e2f for Vouchers
+	// 0x237a816f for Vouchers
 	if payload[2:10] == model.VOUCHER_SELECTOR {
 		_, err := o.convenienceService.CreateVoucher(ctx, &model.ConvenienceVoucher{
 			Destination: destination,
@@ -68,7 +69,7 @@ func (o *OutputDecoder) HandleOutputV2(
 	// https://github.com/cartesi/rollups-contracts/issues/42#issuecomment-1694932058
 	// detect the output type Voucher | Notice
 	// 0xc258d6e5 for Notice
-	// 0xef615e2f for Vouchers
+	// 0x237a816f for Vouchers
 	slog.Debug("Add Voucher/Notices",
 		"inputIndex", processOutputData.InputIndex,
 		"outputIndex", processOutputData.OutputIndex,
@@ -110,14 +111,21 @@ func (o *OutputDecoder) HandleInput(
 		return fmt.Errorf("error getting converted input: %w", err)
 	}
 	_, err = o.convenienceService.CreateInput(ctx, &model.AdvanceInput{
-		Index:          input.Node.Index,
-		Status:         status,
-		MsgSender:      convertedInput.MsgSender,
-		Payload:        []byte(convertedInput.Payload),
-		BlockNumber:    convertedInput.BlockNumber.Uint64(),
-		BlockTimestamp: time.Unix(convertedInput.BlockTimestamp, 0),
-		PrevRandao:     convertedInput.PrevRandao,
-		AppContract:    convertedInput.AppContract,
+		ID:                     strconv.Itoa(input.Node.Index),
+		Index:                  input.Node.Index,
+		Status:                 status,
+		MsgSender:              convertedInput.MsgSender,
+		Payload:                convertedInput.Payload,
+		BlockNumber:            convertedInput.BlockNumber.Uint64(),
+		BlockTimestamp:         time.Unix(convertedInput.BlockTimestamp, 0),
+		PrevRandao:             convertedInput.PrevRandao,
+		AppContract:            convertedInput.AppContract,
+		EspressoBlockNumber:    -1,
+		EspressoBlockTimestamp: time.Unix(-1, 0),
+		InputBoxIndex:          int(convertedInput.InputBoxIndex),
+		AvailBlockNumber:       -1,
+		AvailBlockTimestamp:    time.Unix(-1, 0),
+		CartesiTransactionId:   "0",
 	})
 	return err
 }
@@ -131,7 +139,7 @@ func (o *OutputDecoder) HandleReport(
 	_, err := o.convenienceService.CreateReport(ctx, &model.Report{
 		Index:      outputIndex,
 		InputIndex: index,
-		Payload:    []byte(payload),
+		Payload:    payload,
 	})
 	return err
 }
@@ -197,13 +205,40 @@ func (o *OutputDecoder) GetConvertedInput(input model.InputEdge) (model.Converte
 	}
 	convertedInput := model.ConvertedInput{
 		MsgSender:      values[2].(common.Address),
-		Payload:        string(values[7].([]uint8)),
+		Payload:        common.Bytes2Hex(values[7].([]uint8)),
 		BlockNumber:    values[3].(*big.Int),
 		BlockTimestamp: values[4].(*big.Int).Int64(),
 		PrevRandao:     values[5].(*big.Int).String(),
 		AppContract:    values[1].(common.Address),
+		InputBoxIndex:  values[6].(*big.Int).Int64(),
 	}
 
+	return convertedInput, nil
+}
+
+func (o *OutputDecoder) ParseBytesToInput(data []byte) (model.ConvertedInput, error) {
+	var emptyConvertedInput model.ConvertedInput
+	abiParsed, err := contracts.InputsMetaData.GetAbi()
+	if err != nil {
+		slog.Error("Error parsing abi", "err", err)
+		return emptyConvertedInput, err
+	}
+	values, err := abiParsed.Methods["EvmAdvance"].Inputs.Unpack(data[4:])
+
+	if err != nil {
+		slog.Error("Error unpacking abi", "err", err)
+		return emptyConvertedInput, err
+	}
+	convertedInput := model.ConvertedInput{
+		ChainId:        values[0].(*big.Int),
+		MsgSender:      values[2].(common.Address),
+		Payload:        common.Bytes2Hex(values[7].([]uint8)),
+		BlockNumber:    values[3].(*big.Int),
+		BlockTimestamp: values[4].(*big.Int).Int64(),
+		PrevRandao:     values[5].(*big.Int).String(),
+		AppContract:    values[1].(common.Address),
+		InputBoxIndex:  values[6].(*big.Int).Int64(),
+	}
 	return convertedInput, nil
 }
 

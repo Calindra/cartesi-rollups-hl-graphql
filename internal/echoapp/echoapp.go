@@ -84,13 +84,14 @@ func handleAdvance(
 	voucherReq := rollup.Voucher{
 		Destination: advance.Metadata.MsgSender,
 		Payload:     advance.Payload,
+		Value:       "0x0000000000000000000000000000000000000000000000000000000000000001",
 	}
 	voucherResp, err := client.AddVoucher(ctx, voucherReq)
 	if err != nil {
 		return fmt.Errorf("echo: %w", err)
 	}
 	if voucherResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("echo: failed to add report")
+		return fmt.Errorf("echo: failed to add voucher")
 	}
 
 	// add notice
@@ -114,7 +115,7 @@ func handleAdvance(
 		return fmt.Errorf("echo: %w", err)
 	}
 	if reportResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("echo: failed to add report")
+		return fmt.Errorf("echo: failed to add report 1")
 	}
 
 	return nil
@@ -134,7 +135,7 @@ func handleInspect(
 		return fmt.Errorf("echo: %w", err)
 	}
 	if reportResp.StatusCode != http.StatusOK {
-		return fmt.Errorf("echo: failed to add report")
+		return fmt.Errorf("echo: failed to add report 2")
 	}
 
 	return nil
