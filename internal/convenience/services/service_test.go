@@ -49,6 +49,13 @@ func (s *ConvenienceServiceSuite) SetupTest() {
 	err = s.reportRepository.CreateTables()
 	s.NoError(err)
 
+	s.inputRepository = &repository.InputRepository{
+		Db: *db,
+	}
+
+	err = s.inputRepository.CreateTables()
+	s.NoError(err)
+
 	s.service = &ConvenienceService{
 		VoucherRepository: s.voucherRepository,
 		NoticeRepository:  s.noticeRepository,
@@ -262,4 +269,45 @@ func (s *ConvenienceServiceSuite) XTestCreateReportIdempotency() {
 	count, err = s.reportRepository.Count(ctx, nil)
 	s.NoError(err)
 	s.Equal(1, int(count))
+}
+
+func (s *ConvenienceServiceSuite) TestCreateInputIdempotency() {
+	ctx := context.Background()
+	_, err := s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	count, err := s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+
+	_, err = s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	count, err = s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+}
+
+func (s *ConvenienceServiceSuite) TestCreateInputIdempotencyWithoutAppContract() {
+	ctx := context.Background()
+	_, err := s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index: 1,
+	})
+	s.NoError(err)
+	count, err := s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(1, int(count))
+
+	_, err = s.service.CreateInput(ctx, &model.AdvanceInput{
+		Index:       1,
+		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
+	})
+	s.NoError(err)
+	otherCount, err := s.inputRepository.Count(ctx, nil)
+	s.NoError(err)
+	s.Equal(2, int(otherCount))
 }

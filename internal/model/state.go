@@ -23,8 +23,12 @@ type rollupsState interface {
 	// Add voucher to current state.
 	addVoucher(appAddress common.Address, destination common.Address, value string, payload []byte) (int, error)
 
+	addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error)
+
 	// Add notice to current state.
 	addNotice(payload []byte, appAddress common.Address) (int, error)
+
+	addNoticeWithInput(payload []byte, inputIndex int) (int, error)
 
 	// Add report to current state.
 	addReport(appAddress common.Address, payload []byte) error

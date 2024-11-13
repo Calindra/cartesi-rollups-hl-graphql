@@ -74,7 +74,23 @@ func (o *OutputDecoder) HandleOutputV2(
 		"inputIndex", processOutputData.InputIndex,
 		"outputIndex", processOutputData.OutputIndex,
 	)
-	if processOutputData.Payload[2:10] == model.VOUCHER_SELECTOR {
+
+	input := &model.InputEdge{
+		Node: struct {
+			Index int    `json:"index"`
+			Blob  string `json:"blob"`
+		}{
+			Blob: processOutputData.Payload,
+		},
+	}
+	convertedInput, err := o.GetConvertedInput(*input)
+	if err != nil {
+		slog.Error("Failed to get converted:", "err", err)
+		return fmt.Errorf("error getting converted input: %w", err)
+	}
+
+	payload := processOutputData.Payload[2:]
+	if payload[2:10] == model.VOUCHER_SELECTOR {
 		destination, err := o.RetrieveDestination(processOutputData.Payload)
 		if err != nil {
 			slog.Error("Failed to retrieve destination for node blob ", "err", err)
@@ -87,6 +103,7 @@ func (o *OutputDecoder) HandleOutputV2(
 			Executed:    false,
 			InputIndex:  processOutputData.InputIndex,
 			OutputIndex: processOutputData.OutputIndex,
+			AppContract: convertedInput.AppContract,
 		})
 		return err
 	} else {
@@ -94,6 +111,7 @@ func (o *OutputDecoder) HandleOutputV2(
 			Payload:     adapter.RemoveSelector(processOutputData.Payload),
 			InputIndex:  processOutputData.InputIndex,
 			OutputIndex: processOutputData.OutputIndex,
+			AppContract: convertedInput.AppContract,
 		})
 		return err
 	}

@@ -90,6 +90,10 @@ func (r *InputRepository) Create(ctx context.Context, input model.AdvanceInput) 
 	return r.rawCreate(ctx, input)
 }
 
+func (r *InputRepository) RawCreate(ctx context.Context, input model.AdvanceInput) (*model.AdvanceInput, error) {
+	return r.rawCreate(ctx, input)
+}
+
 func (r *InputRepository) rawCreate(ctx context.Context, input model.AdvanceInput) (*model.AdvanceInput, error) {
 	insertSql := `INSERT INTO convenience_inputs (
 		id,

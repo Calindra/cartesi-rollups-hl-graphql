@@ -393,7 +393,7 @@ func (s *ModelSuite) TestItAddsVoucher() {
 	s.NoError(err)
 	s.Len(vouchers.Rows, s.n)
 	for i := 0; i < s.n; i++ {
-		s.Equal(0, int(vouchers.Rows[i].InputIndex))
+		s.Equal(i, int(vouchers.Rows[i].InputIndex))
 		s.Equal(i, int(vouchers.Rows[i].OutputIndex))
 		s.Equal(s.senders[i], vouchers.Rows[i].Destination)
 		s.Equal(s.payloads[i], vouchers.Rows[i].Payload[2:])
@@ -447,7 +447,7 @@ func (s *ModelSuite) TestItAddsNotice() {
 	s.NoError(err)
 	s.Len(notices.Rows, s.n)
 	for i := 0; i < s.n; i++ {
-		s.Equal(0, int(notices.Rows[i].InputIndex))
+		s.Equal(i, int(notices.Rows[i].InputIndex))
 		s.Equal(i, int(notices.Rows[i].OutputIndex))
 		s.Equal(s.payloads[i], notices.Rows[i].Payload[2:])
 	}
@@ -653,11 +653,13 @@ func (s *ModelSuite) TestItGetsVoucher() {
 	}
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
+			inputIndex := 3*i + j
+			outputIndex := j
 			voucher, err := s.convenienceService.
-				FindVoucherByInputAndOutputIndex(ctx, uint64(i), uint64(j))
+				FindVoucherByInputAndOutputIndex(ctx, uint64(inputIndex), uint64(outputIndex))
 			s.NoError(err)
-			s.Equal(j, int(voucher.OutputIndex))
-			s.Equal(i, int(voucher.InputIndex))
+			s.Equal(outputIndex, int(voucher.OutputIndex))
+			s.Equal(inputIndex, int(voucher.InputIndex))
 			s.Equal(s.senders[j].Hex(), voucher.Destination.Hex())
 			s.Equal(s.payloads[j], voucher.Payload[2:])
 		}
@@ -1016,8 +1018,9 @@ func (s *ModelSuite) TestItGetsVouchers() {
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
 			idx := s.n*i + j
+			id := (3 * i) + (j)
 			s.Equal(j, int(vouchers[idx].OutputIndex))
-			s.Equal(i, int(vouchers[idx].InputIndex))
+			s.Equal(id, int(vouchers[idx].InputIndex))
 			s.Equal(s.senders[j], vouchers[idx].Destination)
 			s.Equal(s.payloads[i], vouchers[i].Payload[2:])
 		}
@@ -1158,6 +1161,7 @@ func (s *ModelSuite) TestItGetsNotices() {
 	for i := 0; i < s.n; i++ {
 		for j := 0; j < s.n; j++ {
 			idx := s.n*i + j
+			id := (3 * i) + (j)
 			s.Equal(j, int(notices[idx].OutputIndex))
 			s.Equal(i, int(notices[idx].InputIndex))
 			s.Equal(s.payloads[j], notices[idx].Payload[2:])
