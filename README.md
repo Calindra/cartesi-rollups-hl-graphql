@@ -23,27 +23,23 @@ curl \
     http://127.0.0.1:8080/graphql
 ```
 
-## Connecting to PostGresDB and Graphile locally
+## Connecting to Postgres locally
 
-Start a PostGres instance locally using docker-compose.yml example.
+Start a Postgres instance locally using docker compose.
 
 ```sh
-docker compose up --wait postgraphile
+make up-db-raw
 ```
 
 When running cartesi-rollups-hl-graphql, set flag db-implementation with the value postgres
 
-Graphile can be called using `http://localhost:5001/graphql` and you can test queries using `http://localhost:5001/graphiql`
-
-You can change Graphile address and port using the flags graphile-url.
-
 ```sh
-export POSTGRES_HOST=127.0.0.1
+export POSTGRES_HOST=localhost
 export POSTGRES_PORT=5432
-export POSTGRES_DB=mydatabase
-export POSTGRES_USER=myuser
-export POSTGRES_PASSWORD=mypassword
-go run . --http-address=0.0.0.0 --high-level-graphql --enable-debug --node-version v2 --db-implementation postgres
+export POSTGRES_DB=hlgraphql
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=password
+./cartesi-rollups-hl-graphql -d --raw-enabled --high-level-graphql --graphile-disable-sync --db-implementation=postgres --db-raw-url=postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable --disable-devnet
 ```
 
 ## Contributors
