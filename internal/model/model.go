@@ -144,52 +144,7 @@ func (m *NonodoModel) GetInspectInput(index int) (InspectInput, error) {
 //
 // Note: use in v2 the sequencer instead.
 func (m *NonodoModel) FinishAndGetNext(accepted bool) (cModel.Input, error) {
-	ctx := context.Background()
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	// finish current input
-	var status cModel.CompletionStatus
-	if accepted {
-		status = cModel.CompletionStatusAccepted
-	} else {
-		status = cModel.CompletionStatusRejected
-	}
-	err := m.state.finish(status)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// try to get first unprocessed inspect
-	for _, input := range m.inspects {
-		if input.Status == cModel.CompletionStatusUnprocessed {
-			m.state = newRollupsStateInspect(input, m.getProcessedInputCount)
-			return *input, nil
-		}
-	}
-
-	// try to get first unprocessed advance
-	input, err := m.inputRepository.FindByStatus(ctx, cModel.CompletionStatusUnprocessed)
-
-	if err != nil {
-		return nil, err
-	}
-	if input != nil {
-		m.state = newRollupsStateAdvance(
-			input,
-			m.decoder,
-			m.reportRepository,
-			m.inputRepository,
-			m.voucherRepository,
-			m.noticeRepository,
-		)
-		return *input, nil
-	}
-
-	// if no input was found, set state to idle
-	m.state = newRollupsStateIdle()
-	return nil, nil
+	panic("remove this method")
 }
 
 // Add a voucher to the model.
@@ -241,37 +196,5 @@ func (m *NonodoModel) AddReport(appAddress common.Address, payload []byte) error
 // Finish the current input with an exception.
 // Return an error if the state isn't advance or inspect.
 func (m *NonodoModel) RegisterException(payload []byte) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-
-	err := m.state.registerException(payload)
-	if err != nil {
-		return err
-	}
-
-	// set state to idle
-	m.state = newRollupsStateIdle()
-	return nil
-}
-
-//
-// Auxiliary Methods
-//
-
-func (m *NonodoModel) getProcessedInputCount() (int, error) {
-	ctx := context.Background()
-	filter := []*cModel.ConvenienceFilter{}
-	field := "Status"
-	value := fmt.Sprintf("%d", cModel.CompletionStatusUnprocessed)
-	filter = append(filter, &cModel.ConvenienceFilter{
-		Field: &field,
-		Ne:    &value,
-	})
-	total, err := m.inputRepository.Count(ctx, filter)
-
-	if err != nil {
-		return -1, err
-	}
-
-	return int(total), nil
+	panic("remove this method")
 }

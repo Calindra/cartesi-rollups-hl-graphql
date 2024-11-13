@@ -20,6 +20,7 @@ type ConvenienceServiceSuite struct {
 	voucherRepository *repository.VoucherRepository
 	noticeRepository  *repository.NoticeRepository
 	reportRepository  *repository.ReportRepository
+	inputRepository   *repository.InputRepository
 	service           *ConvenienceService
 }
 
@@ -60,6 +61,7 @@ func (s *ConvenienceServiceSuite) SetupTest() {
 		VoucherRepository: s.voucherRepository,
 		NoticeRepository:  s.noticeRepository,
 		ReportRepository:  s.reportRepository,
+		InputRepository:   s.inputRepository,
 	}
 }
 

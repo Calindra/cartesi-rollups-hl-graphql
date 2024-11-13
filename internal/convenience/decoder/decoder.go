@@ -111,7 +111,7 @@ func (o *OutputDecoder) HandleOutputV2(
 			Payload:     adapter.RemoveSelector(processOutputData.Payload),
 			InputIndex:  processOutputData.InputIndex,
 			OutputIndex: processOutputData.OutputIndex,
-			AppContract: convertedInput.AppContract,
+			AppContract: convertedInput.AppContract.Hex(),
 		})
 		return err
 	}

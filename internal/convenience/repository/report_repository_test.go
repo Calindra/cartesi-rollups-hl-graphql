@@ -154,18 +154,18 @@ func (s *ReportRepositorySuite) TestBatchFindAll() {
 func (r *ReportRepositorySuite) TestFindReportByAppContractAndIndex() {
 
 	ctx := context.Background()
-	_, err := r.reportRepository.Create(ctx, cModel.Report{
+	_, err := r.reportRepository.CreateReport(ctx, cModel.Report{
 		Index:       2222,
 		InputIndex:  1,
-		Payload:     common.Hex2Bytes("0x1122"),
+		Payload:     "0x1122",
 		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 	})
 	r.NoError(err)
 
-	_, err = r.reportRepository.Create(ctx, cModel.Report{
+	_, err = r.reportRepository.CreateReport(ctx, cModel.Report{
 		Index:       3333,
 		InputIndex:  2,
-		Payload:     common.Hex2Bytes("0xFF22"),
+		Payload:     "0xFF22",
 		AppContract: common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
 	})
 	r.NoError(err)

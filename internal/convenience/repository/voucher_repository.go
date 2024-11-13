@@ -585,3 +585,26 @@ func (c *VoucherRepository) BatchFindAllByInputIndexAndAppContract(
 func GenerateBatchVoucherKey(appContract *common.Address, inputIndex int) string {
 	return fmt.Sprintf("%s|%d", appContract.Hex(), inputIndex)
 }
+
+func parseVoucher(res *sqlx.Rows) (*model.ConvenienceVoucher, error) {
+	var (
+		voucher     model.ConvenienceVoucher
+		appContract string
+		destination string
+	)
+	err := res.Scan(
+		&destination,
+		&voucher.Payload,
+		&voucher.Executed,
+		&voucher.InputIndex,
+		&voucher.OutputIndex,
+		&appContract,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	voucher.AppContract = common.HexToAddress(appContract)
+	voucher.Destination = common.HexToAddress(destination)
+	return &voucher, nil
+}

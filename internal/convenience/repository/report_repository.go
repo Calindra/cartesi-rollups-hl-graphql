@@ -515,7 +515,7 @@ func parseReport(res *sqlx.Rows) (*cModel.Report, error) {
 		return nil, err
 	}
 
-	report.Payload = common.Hex2Bytes(payload)
+	report.Payload = payload
 	report.AppContract = common.HexToAddress(appContract)
 	return &report, nil
 }
