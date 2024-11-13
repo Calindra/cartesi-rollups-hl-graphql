@@ -20,7 +20,7 @@ jobs:
       - name: up db
         run : make up-db-raw
 
-      - name: Compile Nonodo
+      - name: Compile cartesi-rollups-hl-graphql
         run : go build .
 
       - name: Install PostgreSQL Client
@@ -49,7 +49,7 @@ jobs:
           export POSTGRES_DB=hlgraphql
           export POSTGRES_USER=postgres 
           export POSTGRES_PASSWORD=password  
-          nohup ./nonodo -d --raw-enabled --high-level-graphql --graphile-disable-sync --db-implementation=postgres --db-raw-url=postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable --disable-devnet &
+          nohup ./cartesi-rollups-hl-graphql -d --raw-enabled --high-level-graphql --graphile-disable-sync --db-implementation=postgres --db-raw-url=postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable --disable-devnet &
           
       - name: Install k6
         run: |
