@@ -5,12 +5,9 @@
 package main
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -99,7 +96,6 @@ type CelestiaOpts struct {
 	Start       uint64
 	End         uint64
 	RpcUrl      string
-	chainId     int64
 }
 
 // Espresso
@@ -140,13 +136,6 @@ var (
 	opts  = nonodo.NewNonodoOpts()
 )
 
-func markFlagRequired(cmd *cobra.Command, flagNames ...string) {
-	for _, flagName := range flagNames {
-		err := cmd.MarkFlagRequired(flagName)
-		cobra.CheckErr(err)
-	}
-}
-
 func ArrBytesAttr(key string, v []byte) slog.Attr {
 	var str string
 	for _, b := range v {
@@ -158,67 +147,10 @@ func ArrBytesAttr(key string, v []byte) slog.Attr {
 
 func CheckIfValidSize(size uint64) error {
 	if size > MAX_FILE_SIZE {
-		return fmt.Errorf("File size is too big %d bytes", size)
+		return fmt.Errorf("file size is too big %d bytes", size)
 	}
 
 	return nil
-}
-
-func downloadFile(ctx context.Context, url string) ([]byte, error) {
-	slog.Info("Download file", "url", url)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		slog.Error("Create request", "error", err)
-		return nil, err
-	}
-
-	client := http.DefaultClient
-	resp, err := client.Do(req)
-	if err != nil {
-		slog.Error("Get file", "error", err)
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		slog.Error("Read file", "error", err)
-		return nil, err
-	}
-	return content, nil
-}
-
-func readFile(_ context.Context, path string) ([]byte, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		slog.Error("Open file", "error", err)
-		return nil, err
-	}
-	defer file.Close()
-	stat, err := file.Stat()
-	if err != nil {
-		slog.Error("Stat file", "error", err)
-		return nil, err
-	}
-	size := stat.Size()
-	content := make([]byte, size)
-	_, err = file.Read(content)
-	if err != nil {
-		slog.Error("Read file", "error", err)
-		return nil, err
-	}
-	return content, nil
-}
-
-func getTokenFromTia() (tiatoken string, tiaurl string, missingError error) {
-	token := os.Getenv("TIA_AUTH_TOKEN")
-	url := os.Getenv("TIA_URL")
-
-	if token == "" || url == "" {
-		slog.Error("Missing environment variables", "token", token, "url", url)
-		return "", "", fmt.Errorf("missing environment variables")
-	}
-	return token, url, nil
 }
 
 func init() {

@@ -143,17 +143,6 @@ func checkErr(context string, err any) {
 	}
 }
 
-func downloadJsonContract(url string) io.ReadCloser {
-	log.Print("downloading contracts from ", url)
-	response, err := http.Get(url)
-	checkErr("download json", err)
-	if response.StatusCode != http.StatusOK {
-		response.Body.Close()
-		log.Fatal("invalid status: ", response.Status)
-	}
-	return response.Body
-}
-
 // Download the contracts from rollupsContractsUrl.
 // Return the buffer with the contracts.
 func downloadContracts(url string) (io.ReadCloser, error) {
@@ -177,12 +166,6 @@ func unzip(r io.Reader) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return gzipReader, nil
-}
-
-func readJson(r io.Reader) []byte {
-	content, err := io.ReadAll(r)
-	checkErr("read json", err)
-	return content
 }
 
 // Read the required files from the tar.
