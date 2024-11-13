@@ -6,13 +6,9 @@ package model
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/adapter"
 	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
-	cRepos "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 // Interface that represents the state of the rollup.
@@ -22,17 +18,17 @@ type rollupsState interface {
 	finish(status cModel.CompletionStatus) error
 
 	// Add voucher to current state.
-	addVoucher(destination common.Address, payload []byte) (int, error)
+	addVoucher(appAddress common.Address, destination common.Address, value string, payload []byte) (int, error)
 
 	addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error)
 
 	// Add notice to current state.
-	addNotice(payload []byte) (int, error)
+	addNotice(payload []byte, appAddress common.Address) (int, error)
 
 	addNoticeWithInput(payload []byte, inputIndex int) (int, error)
 
 	// Add report to current state.
-	addReport(payload []byte) error
+	addReport(appAddress common.Address, payload []byte) error
 
 	// Register exception in current state.
 	registerException(payload []byte) error
@@ -56,31 +52,19 @@ type Decoder interface {
 // In the idle state, the model waits for an finish request from the rollups API.
 type rollupsStateIdle struct{}
 
-func newRollupsStateIdle() *rollupsStateIdle {
-	return &rollupsStateIdle{}
-}
-
 func (s *rollupsStateIdle) finish(status cModel.CompletionStatus) error {
 	return nil
 }
 
-func (s *rollupsStateIdle) addVoucher(destination common.Address, payload []byte) (int, error) {
+func (s *rollupsStateIdle) addVoucher(appAddress common.Address, destination common.Address, value string, payload []byte) (int, error) {
 	return 0, fmt.Errorf("cannot add voucher in idle state")
 }
 
-func (s *rollupsStateIdle) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
-	return 0, fmt.Errorf("cannot add voucher in idle state")
-}
-
-func (s *rollupsStateIdle) addNotice(payload []byte) (int, error) {
+func (s *rollupsStateIdle) addNotice(payload []byte, appAddress common.Address) (int, error) {
 	return 0, fmt.Errorf("cannot add notice in current state")
 }
 
-func (s *rollupsStateIdle) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
-	return 0, fmt.Errorf("cannot add notice in current state")
-}
-
-func (s *rollupsStateIdle) addReport(payload []byte) error {
+func (s *rollupsStateIdle) addReport(appAddress common.Address, payload []byte) error {
 	return fmt.Errorf("cannot add report in current state")
 }
 
@@ -88,296 +72,10 @@ func (s *rollupsStateIdle) registerException(payload []byte) error {
 	return fmt.Errorf("cannot register exception in current state")
 }
 
-//
-// Advance
-//
-
-// In the advance state, the model accumulates the outputs from an advance.
-type rollupsStateAdvance struct {
-	input            *cModel.AdvanceInput
-	vouchers         []cModel.ConvenienceVoucher
-	notices          []cModel.ConvenienceNotice
-	reports          []cModel.Report
-	decoder          Decoder
-	reportRepository *cRepos.ReportRepository
-	inputRepository  *cRepos.InputRepository
+func (s *rollupsStateIdle) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
+	panic("remove this method please")
 }
 
-func newRollupsStateAdvance(
-	input *cModel.AdvanceInput,
-	decoder Decoder,
-	reportRepository *cRepos.ReportRepository,
-	inputRepository *cRepos.InputRepository,
-) *rollupsStateAdvance {
-	slog.Info("nonodo: processing advance", "index", input.Index)
-	return &rollupsStateAdvance{
-		input:            input,
-		decoder:          decoder,
-		reportRepository: reportRepository,
-		inputRepository:  inputRepository,
-	}
-}
-
-func sendAllInputVouchersToDecoder(decoder Decoder, inputIndex uint64, vouchers []cModel.ConvenienceVoucher) error {
-	if decoder == nil {
-		slog.Warn("Missing OutputDecoder to send vouchers")
-		return nil
-	}
-	ctx := context.Background()
-	for _, v := range vouchers {
-		adapted := adapter.ConvertVoucherPayloadToV2(
-			v.Payload,
-		)
-		err := decoder.HandleOutput(
-			ctx,
-			v.Destination,
-			adapted,
-			v.InputIndex,
-			v.OutputIndex,
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func sendAllInputNoticesToDecoder(decoder Decoder, inputIndex uint64, notices []cModel.ConvenienceNotice) error {
-	if decoder == nil {
-		slog.Warn("Missing OutputDecoder to send notices")
-		return nil
-	}
-	ctx := context.Background()
-	for _, v := range notices {
-		adapted := adapter.ConvertNoticePayloadToV2(
-			v.Payload,
-		)
-		err := decoder.HandleOutput(
-			ctx,
-			common.Address{},
-			adapted,
-			v.InputIndex,
-			v.OutputIndex,
-		)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func saveAllReports(reportRepository *cRepos.ReportRepository, reports []cModel.Report) error {
-	if reportRepository == nil {
-		slog.Warn("Missing reportRepository to save reports")
-		return nil
-	}
-	if reportRepository.Db == nil {
-		slog.Warn("Missing reportRepository.Db to save reports")
-		return nil
-	}
-	ctx := context.Background()
-	for _, r := range reports {
-		_, err := reportRepository.Create(ctx, r)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s *rollupsStateAdvance) finish(status cModel.CompletionStatus) error {
-	s.input.Status = status
-	if status == cModel.CompletionStatusAccepted {
-		s.input.Vouchers = s.vouchers
-		s.input.Notices = s.notices
-		if s.decoder != nil {
-			err := sendAllInputVouchersToDecoder(s.decoder, uint64(s.input.Index), s.vouchers)
-
-			if err != nil {
-				slog.Error("Error sending all input vouchers to decoder", "Error", err)
-				return err
-			}
-
-			err = sendAllInputNoticesToDecoder(s.decoder, uint64(s.input.Index), s.notices)
-
-			if err != nil {
-				slog.Error("Error sending all input notices to decoder", "Error", err)
-				return err
-			}
-		}
-	}
-	// s.input.Reports = s.reports
-	ctx := context.Background()
-
-	err := saveAllReports(s.reportRepository, s.reports)
-
-	if err != nil {
-		slog.Error("Error saving reports", "Error", err)
-		return err
-	}
-	_, erro := s.inputRepository.Update(ctx, *s.input)
-
-	if erro != nil {
-		return erro
-	}
-	slog.Info("nonodo: finished advance")
-	return nil
-}
-
-func (s *rollupsStateAdvance) addVoucher(destination common.Address, payload []byte) (int, error) {
-	index := len(s.vouchers)
-	voucher := cModel.ConvenienceVoucher{
-		OutputIndex: uint64(index),
-		InputIndex:  uint64(s.input.Index),
-		Destination: destination,
-		Payload:     common.Bytes2Hex(payload),
-	}
-	s.vouchers = append(s.vouchers, voucher)
-	slog.Info("nonodo: added voucher", "index", index, "destination", destination,
-		"payload", hexutil.Encode(payload))
-	return index, nil
-}
-
-func (s *rollupsStateAdvance) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
-	index := len(s.vouchers)
-	voucher := cModel.ConvenienceVoucher{
-		OutputIndex: uint64(index),
-		InputIndex:  uint64(inputIndex),
-		Destination: destination,
-		Payload:     common.Bytes2Hex(payload),
-	}
-	s.vouchers = append(s.vouchers, voucher)
-	slog.Info("nonodo: added voucher", "index", index, "destination", destination,
-		"payload", hexutil.Encode(payload))
-	return index, nil
-}
-
-func (s *rollupsStateAdvance) addNotice(payload []byte) (int, error) {
-	index := len(s.notices)
-	notice := cModel.ConvenienceNotice{
-		OutputIndex: uint64(index),
-		InputIndex:  uint64(s.input.Index),
-		Payload:     common.Bytes2Hex(payload),
-	}
-	s.notices = append(s.notices, notice)
-	slog.Info("nonodo: added notice", "index", index, "payload", hexutil.Encode(payload))
-	return index, nil
-}
-
-func (s *rollupsStateAdvance) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
-	index := len(s.notices)
-	notice := cModel.ConvenienceNotice{
-		OutputIndex: uint64(index),
-		InputIndex:  uint64(inputIndex),
-		Payload:     common.Bytes2Hex(payload),
-	}
-	s.notices = append(s.notices, notice)
-	slog.Info("nonodo: added notice", "index", index, "payload", hexutil.Encode(payload))
-	return index, nil
-}
-
-func (s *rollupsStateAdvance) addReport(payload []byte) error {
-	index := len(s.reports)
-	report := cModel.Report{
-		Index:      index,
-		InputIndex: s.input.Index,
-		Payload:    payload,
-	}
-	s.reports = append(s.reports, report)
-	slog.Info("nonodo: added report", "index", index, "payload", hexutil.Encode(payload))
-	return nil
-}
-
-func (s *rollupsStateAdvance) registerException(payload []byte) error {
-	s.input.Status = cModel.CompletionStatusException
-	s.input.Reports = s.reports
-	s.input.Exception = payload
-	ctx := context.Background()
-	_, err := s.inputRepository.Update(ctx, *s.input)
-	if err != nil {
-		return err
-	}
-	err = saveAllReports(s.reportRepository, s.reports)
-
-	if err != nil {
-		return err
-	}
-
-	slog.Info("nonodo: finished advance with exception")
-	return nil
-}
-
-//
-// Inspect
-//
-
-// In the inspect state, the model accumulates the reports from an inspect.
-type rollupsStateInspect struct {
-	input                  *InspectInput
-	reports                []Report
-	getProcessedInputCount func() (int, error)
-}
-
-func newRollupsStateInspect(
-	input *InspectInput,
-	getProcessedInputCount func() (int, error),
-) *rollupsStateInspect {
-	slog.Info("nonodo: processing inspect", "index", input.Index)
-	return &rollupsStateInspect{
-		input:                  input,
-		getProcessedInputCount: getProcessedInputCount,
-	}
-}
-
-func (s *rollupsStateInspect) finish(status cModel.CompletionStatus) error {
-	s.input.Status = status
-	inputCount, err := s.getProcessedInputCount()
-
-	if err != nil {
-		slog.Error("Error getting processed input count", "Error", err)
-		return err
-	}
-
-	s.input.ProcessedInputCount = inputCount
-	s.input.Reports = s.reports
-	slog.Info("nonodo: finished inspect")
-	return nil
-}
-
-func (s *rollupsStateInspect) addVoucher(destination common.Address, payload []byte) (int, error) {
-	return 0, fmt.Errorf("cannot add voucher in inspect state")
-}
-
-func (s *rollupsStateInspect) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
-	return 0, fmt.Errorf("cannot add voucher in inspect state")
-}
-
-func (s *rollupsStateInspect) addNotice(payload []byte) (int, error) {
-	return 0, fmt.Errorf("cannot add notice in current state")
-}
-
-func (s *rollupsStateInspect) addNoticeWithInput(payload []byte, inputIndex int) (int, error) {
-	return 0, fmt.Errorf("cannot add notice in current state")
-}
-
-func (s *rollupsStateInspect) addReport(payload []byte) error {
-	index := len(s.reports)
-	report := Report{
-		Index:      index,
-		InputIndex: s.input.Index,
-		Payload:    payload,
-	}
-	s.reports = append(s.reports, report)
-	slog.Info("nonodo: added report", "index", index, "payload", hexutil.Encode(payload))
-	return nil
-}
-
-func (s *rollupsStateInspect) registerException(payload []byte) error {
-	s.input.Status = cModel.CompletionStatusException
-	inputCount, _ := s.getProcessedInputCount()
-	s.input.ProcessedInputCount = inputCount
-	s.input.Reports = s.reports
-	s.input.Exception = payload
-	slog.Info("nonodo: finished inspect with exception")
-	return nil
+func (s *rollupsStateIdle) addVoucherWithInput(destination common.Address, payload []byte, inputIndex int) (int, error) {
+	panic("remove this method please")
 }

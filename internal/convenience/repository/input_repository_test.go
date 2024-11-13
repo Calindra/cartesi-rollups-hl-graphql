@@ -4,39 +4,32 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math/rand"
-	"os"
-	"path"
+	"strconv"
 	"testing"
 	"time"
 
 	convenience "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
 
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/suite"
 )
 
 type InputRepositorySuite struct {
 	suite.Suite
 	inputRepository *InputRepository
-	tempDir         string
+	dbFactory       *commons.DbFactory
 }
 
 func (s *InputRepositorySuite) SetupTest() {
 	commons.ConfigureLog(slog.LevelDebug)
-	tempDir, err := os.MkdirTemp("", "")
-	s.tempDir = tempDir
-	s.NoError(err)
-	sqliteFileName := fmt.Sprintf("input%d.sqlite3", rand.Intn(1000))
-	sqliteFileName = path.Join(tempDir, sqliteFileName)
-	// db := sqlx.MustConnect("sqlite3", ":memory:")
-	db := sqlx.MustConnect("sqlite3", sqliteFileName)
+	s.dbFactory = commons.NewDbFactory()
+	db := s.dbFactory.CreateDb("input.sqlite3")
 	s.inputRepository = &InputRepository{
 		Db: *db,
 	}
-	err = s.inputRepository.CreateTables()
+	err := s.inputRepository.CreateTables()
 	s.NoError(err)
 }
 
@@ -46,19 +39,17 @@ func TestInputRepositorySuite(t *testing.T) {
 }
 
 func (s *InputRepositorySuite) TestCreateTables() {
-	defer s.teardown()
 	err := s.inputRepository.CreateTables()
 	s.NoError(err)
 }
 
 func (s *InputRepositorySuite) TestCreateInput() {
-	defer s.teardown()
 	ctx := context.Background()
 	input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
 		Index:          0,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 	})
@@ -67,13 +58,12 @@ func (s *InputRepositorySuite) TestCreateInput() {
 }
 
 func (s *InputRepositorySuite) TestFixCreateInputDuplicated() {
-	defer s.teardown()
 	ctx := context.Background()
 	input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
 		Index:          0,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 	})
@@ -83,7 +73,7 @@ func (s *InputRepositorySuite) TestFixCreateInputDuplicated() {
 		Index:          0,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 	})
@@ -94,38 +84,38 @@ func (s *InputRepositorySuite) TestFixCreateInputDuplicated() {
 	s.Equal(uint64(1), count)
 }
 
-func (s *InputRepositorySuite) TestCreateAndFindInputByIndex() {
-	defer s.teardown()
+func (s *InputRepositorySuite) TestCreateAndFindInputByID() {
 	ctx := context.Background()
 	input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+		ID:             "123",
 		Index:          123,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
-		Payload:        common.Hex2Bytes("1122"),
+		Payload:        "1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 	})
 	s.NoError(err)
 	s.Equal(123, input.Index)
 
-	input2, err := s.inputRepository.FindByIndex(ctx, 123)
+	input2, err := s.inputRepository.FindByIDAndAppContract(ctx, "123", nil)
 	s.NoError(err)
-	s.Equal(123, input.Index)
+	s.Equal("123", input2.ID)
 	s.Equal(input.Status, input2.Status)
-	s.Equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", input.MsgSender.Hex())
-	s.Equal("1122", common.Bytes2Hex(input.Payload))
+	s.Equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", input2.MsgSender.Hex())
+	s.Equal("0x1122", input2.Payload)
 	s.Equal(1, int(input2.BlockNumber))
 	s.Equal(input.BlockTimestamp.UnixMilli(), input2.BlockTimestamp.UnixMilli())
 }
 
 func (s *InputRepositorySuite) TestCreateInputAndUpdateStatus() {
-	defer s.teardown()
 	ctx := context.Background()
 	input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+		ID:             "2222",
 		Index:          2222,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 		AppContract:    common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
@@ -137,20 +127,19 @@ func (s *InputRepositorySuite) TestCreateInputAndUpdateStatus() {
 	_, err = s.inputRepository.Update(ctx, *input)
 	s.NoError(err)
 
-	input2, err := s.inputRepository.FindByIndex(ctx, 2222)
+	input2, err := s.inputRepository.FindByIDAndAppContract(ctx, "2222", nil)
 	s.NoError(err)
 	s.Equal(convenience.CompletionStatusAccepted, input2.Status)
 	s.Equal("0x70997970C51812dc3A010C7d01b50e0d17dc79C8", input2.AppContract.Hex())
 }
 
 func (s *InputRepositorySuite) TestCreateInputFindByStatus() {
-	defer s.teardown()
 	ctx := context.Background()
 	input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
 		Index:          2222,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		PrevRandao:     "0xdeadbeef",
 		BlockTimestamp: time.Now(),
@@ -177,14 +166,14 @@ func (s *InputRepositorySuite) TestCreateInputFindByStatus() {
 }
 
 func (s *InputRepositorySuite) TestFindByIndexGt() {
-	defer s.teardown()
 	ctx := context.Background()
 	for i := 0; i < 5; i++ {
 		input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+			ID:             strconv.Itoa(i),
 			Index:          i,
 			Status:         convenience.CompletionStatusUnprocessed,
 			MsgSender:      common.Address{},
-			Payload:        common.Hex2Bytes("0x1122"),
+			Payload:        "0x1122",
 			BlockNumber:    1,
 			BlockTimestamp: time.Now(),
 			AppContract:    common.Address{},
@@ -205,14 +194,14 @@ func (s *InputRepositorySuite) TestFindByIndexGt() {
 }
 
 func (s *InputRepositorySuite) TestFindByIndexLt() {
-	defer s.teardown()
 	ctx := context.Background()
 	for i := 0; i < 5; i++ {
 		input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+			ID:             strconv.Itoa(i),
 			Index:          i,
 			Status:         convenience.CompletionStatusUnprocessed,
 			MsgSender:      common.Address{},
-			Payload:        common.Hex2Bytes("0x1122"),
+			Payload:        "0x1122",
 			BlockNumber:    1,
 			BlockTimestamp: time.Now(),
 			AppContract:    common.Address{},
@@ -233,14 +222,14 @@ func (s *InputRepositorySuite) TestFindByIndexLt() {
 }
 
 func (s *InputRepositorySuite) TestFindByMsgSender() {
-	defer s.teardown()
 	ctx := context.Background()
 	for i := 0; i < 5; i++ {
 		input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+			ID:             strconv.Itoa(i),
 			Index:          i,
 			Status:         convenience.CompletionStatusUnprocessed,
 			MsgSender:      common.HexToAddress(fmt.Sprintf("000000000000000000000000000000000000000%d", i)),
-			Payload:        common.Hex2Bytes("0x1122"),
+			Payload:        "0x1122",
 			BlockNumber:    1,
 			BlockTimestamp: time.Now(),
 			AppContract:    common.Address{},
@@ -290,13 +279,13 @@ func (s *InputRepositorySuite) TestColumnDappAddressExists() {
 }
 
 func (s *InputRepositorySuite) TestCreateInputAndCheckAppContract() {
-	defer s.teardown()
 	ctx := context.Background()
 	_, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+		ID:             "2222",
 		Index:          2222,
 		Status:         convenience.CompletionStatusUnprocessed,
 		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
+		Payload:        "0x1122",
 		BlockNumber:    1,
 		BlockTimestamp: time.Now(),
 		AppContract:    common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
@@ -304,44 +293,48 @@ func (s *InputRepositorySuite) TestCreateInputAndCheckAppContract() {
 
 	s.NoError(err)
 
-	input2, err := s.inputRepository.FindByIndex(ctx, 2222)
+	input2, err := s.inputRepository.FindByIDAndAppContract(ctx, "2222", nil)
 	s.NoError(err)
 	s.Equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266", input2.AppContract.Hex())
 }
 
-func (s *InputRepositorySuite) TestFindInputByAppContractAndIndex() {
-	defer s.teardown()
+func (s *InputRepositorySuite) TestBatchFindInput() {
 	ctx := context.Background()
-	_, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
-		Index:          2222,
-		Status:         convenience.CompletionStatusUnprocessed,
-		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0x1122"),
-		BlockNumber:    1,
-		BlockTimestamp: time.Now(),
-		AppContract:    common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
-	})
-	s.NoError(err)
-	_, err = s.inputRepository.Create(ctx, convenience.AdvanceInput{
-		Index:          3333,
-		Status:         convenience.CompletionStatusUnprocessed,
-		MsgSender:      common.Address{},
-		Payload:        common.Hex2Bytes("0xFF22"),
-		BlockNumber:    2,
-		BlockTimestamp: time.Now(),
-		AppContract:    common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
-	})
-	s.NoError(err)
-
-	input, err := s.inputRepository.FindInputByAppContractAndIndex(ctx, 3333, common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"))
-	s.NoError(err)
-	slog.Debug("INPUT: ", "input", input)
-
-	s.Equal(common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"), input.AppContract)
-	s.Equal(3333, input.Index)
-	s.Equal(uint64(2), input.BlockNumber)
+	appContract := common.HexToAddress(devnet.ApplicationAddress)
+	for i := 0; i < 5; i++ {
+		input, err := s.inputRepository.Create(ctx, convenience.AdvanceInput{
+			ID:             strconv.Itoa(i),
+			Index:          i,
+			Status:         convenience.CompletionStatusUnprocessed,
+			MsgSender:      common.Address{},
+			Payload:        "0x1122",
+			BlockNumber:    1,
+			BlockTimestamp: time.Now(),
+			AppContract:    appContract,
+		})
+		s.NoError(err)
+		s.Equal(i, input.Index)
+	}
+	res, err := s.inputRepository.FindAll(ctx, nil, nil, nil, nil, nil)
+	s.Require().NoError(err)
+	for _, input := range res.Rows {
+		slog.Debug("res",
+			"AppContract", input.AppContract.Hex(),
+			"Index", input.Index,
+		)
+	}
+	filters := []*BatchFilterItem{
+		{
+			AppContract: &appContract,
+			InputIndex:  2,
+		},
+	}
+	results, errors := s.inputRepository.BatchFindInputByInputIndexAndAppContract(ctx, filters)
+	s.Require().Equal(0, len(errors))
+	s.Equal(1, len(results))
+	s.Equal(2, results[0].Index)
 }
 
-func (s *InputRepositorySuite) teardown() {
-	defer os.RemoveAll(s.tempDir)
+func (s *InputRepositorySuite) TearDownTest() {
+	defer s.dbFactory.Cleanup()
 }

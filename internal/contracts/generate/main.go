@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	celestiaUrl         = "https://raw.githubusercontent.com/miltonjonat/rollups-celestia/main/onchain/deployments/sepolia/CelestiaRelay.json"
-	rollupsContractsUrl = "https://registry.npmjs.org/@cartesi/rollups/-/rollups-2.0.0-rc.6.tgz"
+	openzeppelin        = "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-5.0.2.tgz"
+	rollupsContractsUrl = "https://registry.npmjs.org/@cartesi/rollups/-/rollups-2.0.0-rc.10.tgz"
 	baseContractsPath   = "package/export/artifacts/contracts/"
 	bindingPkg          = "contracts"
 )
@@ -41,6 +41,14 @@ type contractBinding struct {
 	jsonPath string
 	typeName string
 	outFile  string
+}
+
+var bindingsOpenZeppelin = []contractBinding{
+	{
+		jsonPath: "package/build/contracts/EIP712.json",
+		typeName: "EIP712",
+		outFile:  "eip712.go",
+	},
 }
 
 var bindings = []contractBinding{
@@ -64,6 +72,21 @@ var bindings = []contractBinding{
 		typeName: "Outputs",
 		outFile:  "outputs.go",
 	},
+	{
+		jsonPath: baseContractsPath + "dapp/IApplicationFactory.sol/IApplicationFactory.json",
+		typeName: "IApplicationFactory",
+		outFile:  "application_factory.go",
+	},
+	{
+		jsonPath: baseContractsPath + "consensus/authority/IAuthorityFactory.sol/IAuthorityFactory.json",
+		typeName: "IAuthorityFactory",
+		outFile:  "authority_factory.go",
+	},
+	{
+		jsonPath: baseContractsPath + "consensus/IConsensus.sol/IConsensus.json",
+		typeName: "IConsensus",
+		outFile:  "consensus.go",
+	},
 }
 
 func main() {
@@ -75,8 +98,12 @@ func main() {
 	checkErr("unzip contracts", err)
 	defer contractsTar.Close()
 
-	contractJson := downloadJsonContract(celestiaUrl)
-	defer contractJson.Close()
+	contractsOpenZeppelin, err := downloadContracts(openzeppelin)
+	checkErr("download contracts", err)
+	defer contractsOpenZeppelin.Close()
+	contractsTarOpenZeppelin, err := unzip(contractsOpenZeppelin)
+	checkErr("unzip contracts", err)
+	defer contractsTarOpenZeppelin.Close()
 
 	files := make(map[string]bool)
 	for _, b := range bindings {
@@ -85,13 +112,18 @@ func main() {
 	contents, err := readFilesFromTar(contractsTar, files)
 	checkErr("read files from tar", err)
 
-	content := readJson(contractJson)
-	contents[baseContractsPath+"sepolia/CelestiaRelay.json"] = content
-	bindings = append(bindings, contractBinding{
-		jsonPath: baseContractsPath + "sepolia/CelestiaRelay.json",
-		typeName: "CelestiaRelay",
-		outFile:  "celestia_relay.go",
-	})
+	filesZ := make(map[string]bool)
+	for _, b := range bindingsOpenZeppelin {
+		filesZ[b.jsonPath] = true
+	}
+	contentZ, err := readFilesFromTar(contractsTarOpenZeppelin, filesZ)
+	checkErr("read files from tar", err)
+
+	for contract, content := range contentZ {
+		contents[contract] = content
+	}
+
+	bindings = append(bindings, bindingsOpenZeppelin...)
 
 	for _, b := range bindings {
 		content := contents[b.jsonPath]
@@ -109,17 +141,6 @@ func checkErr(context string, err any) {
 	if err != nil {
 		log.Fatal(context, ": ", err)
 	}
-}
-
-func downloadJsonContract(url string) io.ReadCloser {
-	log.Print("downloading contracts from ", url)
-	response, err := http.Get(url)
-	checkErr("download json", err)
-	if response.StatusCode != http.StatusOK {
-		response.Body.Close()
-		log.Fatal("invalid status: ", response.Status)
-	}
-	return response.Body
 }
 
 // Download the contracts from rollupsContractsUrl.
@@ -145,12 +166,6 @@ func unzip(r io.Reader) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return gzipReader, nil
-}
-
-func readJson(r io.Reader) []byte {
-	content, err := io.ReadAll(r)
-	checkErr("read json", err)
-	return content
 }
 
 // Read the required files from the tar.

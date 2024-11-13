@@ -8,6 +8,7 @@ package reader
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -16,6 +17,7 @@ import (
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
 	nonodomodel "github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/graph"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/loaders"
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 	"github.com/labstack/echo/v4"
 )
@@ -40,15 +42,31 @@ func Register(
 		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 		return nil
 	})
-	e.POST("/:appContract/graphql", func(c echo.Context) error {
+	e.POST("/graphql/:appContract", func(c echo.Context) error {
 		appContract := c.Param("appContract")
 		slog.Debug("path parameter received: ", "app_contract", appContract)
 		ctx := context.WithValue(c.Request().Context(), cModel.AppContractKey, appContract)
+		loader := loaders.NewLoaders(
+			convenienceService.ReportRepository,
+			convenienceService.VoucherRepository,
+			convenienceService.NoticeRepository,
+			convenienceService.InputRepository,
+		)
+		ctx = context.WithValue(ctx, loaders.LoadersKey, loader)
 		c.SetRequest(c.Request().WithContext(ctx))
 		graphqlHandler.ServeHTTP(c.Response(), c.Request())
 		return nil
 	})
 	e.GET("/graphql", func(c echo.Context) error {
+		playgroundHandler.ServeHTTP(c.Response(), c.Request())
+		return nil
+	})
+	e.GET("/graphql/:appContract", func(c echo.Context) error {
+		appContract := c.Param("appContract")
+		slog.Debug("graphql playground", "appContract", appContract)
+		playgroundHandler := playground.Handler("GraphQL",
+			fmt.Sprintf("/graphql/%s", appContract),
+		)
 		playgroundHandler.ServeHTTP(c.Response(), c.Request())
 		return nil
 	})

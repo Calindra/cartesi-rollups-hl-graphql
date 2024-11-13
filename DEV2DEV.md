@@ -1,7 +1,11 @@
 # Developer Notes
 
 ```shell
-watchexec --exts go --watch . 'go test ./... && make lint'
+watchexec --exts go --watch . 'make test && make lint'
+```
+
+```bash
+watchexec --exts go --watch . 'go test ./internal/sequencers/... && make lint'
 ```
 
 uint64 type is based on [rollups_outputs.rs](https://github.com/cartesi/rollups-node/blob/392c75972037352ecf94fb482619781b1b09083f/offchain/rollups-events/src/rollups_outputs.rs#L41)
@@ -72,4 +76,34 @@ To configure the endpoint of the node v2 Graphile, you can set the `GRAPHILE_URL
 
 ```bash
 export GRAPHILE_URL=localhost:5001/graphql
+```
+
+## Enable Avail
+
+```bash
+go run . -d --avail  --avail-from-block 746430
+```
+
+Avail + Sepolia
+
+```bash
+ go build . && ./nonodo --avail-enabled -d \
+    --avail-from-block <L2 block number> \
+    --rpc-url <your rpc endpoint> \
+    --contracts-input-box-block <L1 block number> \
+```
+
+Example:
+
+```bash
+go build . && ./nonodo --avail-enabled -d \
+    --avail-from-block 853228 \
+    --rpc-url wss://ethereum-sepolia-rpc.publicnode.com \
+    --contracts-input-box-block 6863007
+```
+
+Clear database raw:
+
+```bash
+make clean-db-raw
 ```

@@ -7,6 +7,7 @@ import (
 
 	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/ncruces/go-sqlite3/driver"
@@ -44,21 +45,20 @@ func (s *ReportRepositorySuite) TestCreateTables() {
 
 func (s *ReportRepositorySuite) TestCreateReport() {
 	ctx := context.Background()
-	_, err := s.reportRepository.Create(ctx, cModel.Report{
+	_, err := s.reportRepository.CreateReport(ctx, cModel.Report{
 		Index:      1,
 		InputIndex: 2,
-		Payload:    common.Hex2Bytes("1122"),
+		Payload:    "1122",
 	})
 	s.NoError(err)
 }
 
 func (s *ReportRepositorySuite) TestCreateReportAndFind() {
 	ctx := context.Background()
-	_, err := s.reportRepository.Create(ctx, cModel.Report{
-		InputIndex:  1,
-		Index:       2,
-		Payload:     common.Hex2Bytes("1122"),
-		AppContract: common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
+	_, err := s.reportRepository.CreateReport(ctx, cModel.Report{
+		InputIndex: 1,
+		Index:      2,
+		Payload:    "1122",
 	})
 	s.NoError(err)
 	report, err := s.reportRepository.FindByInputAndOutputIndex(
@@ -67,7 +67,7 @@ func (s *ReportRepositorySuite) TestCreateReportAndFind() {
 		uint64(2),
 	)
 	s.NoError(err)
-	s.Equal("1122", common.Bytes2Hex(report.Payload))
+	s.Equal("0x1122", report.Payload)
 }
 
 func (s *ReportRepositorySuite) TestReportNotFound() {
@@ -85,12 +85,12 @@ func (s *ReportRepositorySuite) TestCreateReportAndFindAll() {
 	ctx := context.Background()
 	for i := 0; i < 3; i++ {
 		for j := 0; j < 4; j++ {
-			_, err := s.reportRepository.Create(
+			_, err := s.reportRepository.CreateReport(
 				ctx,
 				cModel.Report{
 					InputIndex: i,
 					Index:      j,
-					Payload:    common.Hex2Bytes("1122"),
+					Payload:    "1122",
 				})
 			s.NoError(err)
 		}
@@ -117,24 +117,55 @@ func (s *ReportRepositorySuite) TestCreateReportAndFindAll() {
 	s.Equal(0, reports.Rows[0].Index)
 	s.Equal(1, reports.Rows[len(reports.Rows)-1].InputIndex)
 	s.Equal(3, reports.Rows[len(reports.Rows)-1].Index)
-	s.Equal("1122", common.Bytes2Hex(reports.Rows[0].Payload))
+	s.Equal("0x1122", reports.Rows[0].Payload)
+}
+
+func (s *ReportRepositorySuite) TestBatchFindAll() {
+	ctx := context.Background()
+	appContract := common.HexToAddress(devnet.ApplicationAddress)
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 4; j++ {
+			_, err := s.reportRepository.CreateReport(
+				ctx,
+				cModel.Report{
+					InputIndex:  i,
+					Index:       j,
+					Payload:     "0x1122",
+					AppContract: appContract,
+				})
+			s.Require().NoError(err)
+		}
+	}
+	filters := []*BatchFilterItem{
+		{
+			AppContract: &appContract,
+			InputIndex:  0,
+		},
+	}
+	results, err := s.reportRepository.BatchFindAllByInputIndexAndAppContract(
+		ctx, filters,
+	)
+	s.Require().Equal(0, len(err))
+	s.Equal(1, len(results))
+	s.Equal(4, len(results[0].Rows))
+	s.Equal(4, int(results[0].Total))
 }
 
 func (r *ReportRepositorySuite) TestFindReportByAppContractAndIndex() {
 
 	ctx := context.Background()
-	_, err := r.reportRepository.Create(ctx, cModel.Report{
+	_, err := r.reportRepository.CreateReport(ctx, cModel.Report{
 		Index:       2222,
 		InputIndex:  1,
-		Payload:     common.Hex2Bytes("0x1122"),
+		Payload:     "0x1122",
 		AppContract: common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"),
 	})
 	r.NoError(err)
 
-	_, err = r.reportRepository.Create(ctx, cModel.Report{
+	_, err = r.reportRepository.CreateReport(ctx, cModel.Report{
 		Index:       3333,
 		InputIndex:  2,
-		Payload:     common.Hex2Bytes("0xFF22"),
+		Payload:     "0xFF22",
 		AppContract: common.HexToAddress("0xf29Ed6e51bbd88F7F4ce6bA8827389cffFb92255"),
 	})
 	r.NoError(err)

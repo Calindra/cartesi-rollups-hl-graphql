@@ -25,6 +25,9 @@ models:
   Voucher:
     model:
       - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Voucher
+  Proof:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Proof
   Notice:
     model:
       - github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model.Notice

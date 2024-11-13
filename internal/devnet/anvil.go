@@ -57,50 +57,51 @@ func (w AnvilWorker) String() string {
 	return anvilCommand
 }
 
-func IsAnvilInstalled() bool {
-	_, err := exec.LookPath(anvilCommand)
-	return err == nil
-}
-
+// Try to install anvil
 func InstallAnvil(ctx context.Context) (string, error) {
-	// Try to install anvil
 	anvilClient := commons.NewAnvilRelease()
-	latest, err := anvilClient.GetLatestReleaseCompatible(ctx)
+	anvilExec, err := commons.HandleReleaseExecution(ctx, anvilClient)
 	if err != nil {
-		return "", fmt.Errorf("anvil: failed to get latest release: %w", err)
-	}
-	err = anvilClient.Prerequisites(ctx)
-	if err != nil {
-		return "", fmt.Errorf("anvil: failed to install prerequisites: %w", err)
-	}
-	anvilExec, err := anvilClient.DownloadAsset(ctx, latest)
-	if err != nil {
-		return "", fmt.Errorf("anvil: failed to download asset: %w", err)
+		return "", fmt.Errorf("anvil: %w", err)
 	}
 	return anvilExec, nil
 }
 
-func CheckAnvilAndInstall(ctx context.Context) (string, error) {
-	if !IsAnvilInstalled() {
-		slog.Debug("anvil: anvil is not installed")
-		location, err := InstallAnvil(ctx)
-		if err != nil {
-			return "", fmt.Errorf("anvil: failed to install %w", err)
-		}
-		slog.Debug("anvil: installed anvil", "location", location)
-		return location, nil
+func GetAnvilVersion(anvilExec string) (string, error) {
+	output, err := exec.Command(anvilExec, "--version").Output()
+	if err != nil {
+		return "", fmt.Errorf("anvil: failed to run anvil: %w", err)
 	}
-
-	slog.Debug("anvil: anvil is installed")
-	return anvilCommand, nil
+	anvilVersion := strings.TrimSpace(string(output))
+	return anvilVersion, nil
 }
 
-func ShowAddresses() {
+// For while, we dont check if anvil is already installed.
+// We always install anvil.
+func CheckAnvilAndInstall(ctx context.Context) (string, error) {
+	location, err := InstallAnvil(ctx)
+	if err != nil {
+		return "", fmt.Errorf("anvil: failed to install %w", err)
+	}
+	anvilVersion, err := GetAnvilVersion(location)
+	if err != nil {
+		return "", err
+	}
+	slog.Debug("anvil: installed anvil", "location", location, "version", anvilVersion)
+	return location, nil
+}
+
+func GetContractInfo() *ContractInfo {
 	var contracts ContractInfo
 	if err := json.Unmarshal(localhost, &contracts); err != nil {
 		slog.Warn("anvil: failed to unmarshal localhost.json", "error", err)
-		return
+		return nil
 	}
+	return &contracts
+}
+
+func ShowAddresses() {
+	contracts := GetContractInfo()
 	var names []string
 	for name := range contracts.Contracts {
 		names = append(names, name)
@@ -142,6 +143,7 @@ func (w AnvilWorker) Start(ctx context.Context, ready chan<- struct{}) error {
 	server.Args = append(server.Args, "--host", fmt.Sprint(w.Address))
 	server.Args = append(server.Args, "--port", fmt.Sprint(w.Port))
 	server.Args = append(server.Args, "--load-state", path.Join(dir, stateFileName))
+	// server.Args = append(server.Args, "--tracing")
 	if !w.Verbose {
 		server.Args = append(server.Args, "--silent")
 	}
