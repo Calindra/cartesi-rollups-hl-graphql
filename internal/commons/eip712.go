@@ -5,18 +5,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"unicode"
 
-	"github.com/btcsuite/btcd/btcutil/hdkeychain"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
-	"github.com/tyler-smith/go-bip39"
 )
 
 type SigAndData struct {
@@ -56,138 +52,6 @@ func SignMessage(hash []byte, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 		return nil, err
 	}
 	return signature, nil
-}
-
-func GetPrivateKeyFromMnemonic(mnemonic string) (*ecdsa.PrivateKey, error) {
-	seed := bip39.NewSeed(mnemonic, "")
-
-	masterKey, err := hdkeychain.NewMaster(seed, &chaincfg.MainNetParams)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to generate master key: %w", err)
-	}
-
-	childKey, err := masterKey.Derive(hdkeychain.HardenedKeyStart + PURPOSE_INDEX)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to derive key: %w", err)
-	}
-	childKey, err = childKey.Derive(hdkeychain.HardenedKeyStart + COIN_TYPE_INDEX)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to derive key: %w", err)
-	}
-	childKey, err = childKey.Derive(hdkeychain.HardenedKeyStart + 0)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to derive key: %w", err)
-	}
-	childKey, err = childKey.Derive(0)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to derive key: %w", err)
-	}
-	childKey, err = childKey.Derive(0)
-	if err != nil {
-		return nil, fmt.Errorf("Fail to derive key: %w", err)
-	}
-
-	privKeyBytes, err := childKey.ECPrivKey()
-	if err != nil {
-		return nil, fmt.Errorf("Fail to obtain private key: %w", err)
-	}
-
-	privateKey, err := crypto.ToECDSA(privKeyBytes.Serialize())
-	if err != nil {
-		return nil, fmt.Errorf("Fail to convert to ECDSA key: %w", err)
-	}
-
-	return privateKey, nil
-}
-
-func Main() []byte {
-	espressoMessage := apitypes.TypedDataMessage{}
-	espressoMessage["nonce"] = "1"
-	espressoMessage["payload"] = "0xdeadbeef"
-
-	chainId := math.NewHexOrDecimal256(HARDHAT)
-	domain := NewCartesiDomain(chainId)
-
-	types := apitypes.Types{
-		"EIP712Domain": {
-			{Name: "name", Type: "string"},
-			{Name: "version", Type: "string"},
-			{Name: "chainId", Type: "uint256"}, // chainId should be uint256, not uint32
-			{Name: "verifyingContract", Type: "address"},
-		},
-		"CartesiMessage": {
-			{Name: "nonce", Type: "uint64"},
-			{Name: "payload", Type: "string"},
-		},
-	}
-
-	// Build Message
-	data := apitypes.TypedData{
-		Message:     espressoMessage,
-		Domain:      domain,
-		PrimaryType: "CartesiMessage",
-		Types:       types,
-	}
-
-	// Hash the message
-	messageHash, err := HashEIP712Message(data)
-	if err != nil {
-		log.Fatal("Error hashing message:", err)
-	}
-
-	mnemonic := "test test test test test test test test test test test junk"
-	// Private key for signing (this is just a sample, replace with actual private key)
-	privateKey, err := GetPrivateKeyFromMnemonic(mnemonic)
-	if err != nil {
-		log.Fatalf("Error deriving private key: %v", err)
-	}
-
-	// Sign the message
-	signature, err := SignMessage(messageHash, privateKey)
-	if err != nil {
-		log.Fatal("Error signing message:", err)
-	}
-
-	// Output the signature
-	fmt.Printf("Signature: %x\n", signature)
-
-	sigPubkey, err := crypto.Ecrecover(messageHash, signature)
-	if err != nil {
-		log.Fatal("Error signing message:", err)
-	}
-
-	pubkey, err := crypto.UnmarshalPubkey(sigPubkey)
-	if err != nil {
-		log.Fatal("Error signing message:", err)
-	}
-	address1 := crypto.PubkeyToAddress(*pubkey)
-	fmt.Printf("SigPubkey: %s\n", common.Bytes2Hex(sigPubkey))
-	fmt.Printf("Pubkey: %s\n", address1.Hex())
-
-	typedDataJSON, err := json.Marshal(data)
-	if err != nil {
-		log.Fatal("Error signing message:", err)
-	}
-	typedDataBase64 := base64.StdEncoding.EncodeToString(typedDataJSON)
-
-	signature[64] += 27
-	sigAndData := SigAndData{
-		Signature: "0x" + common.Bytes2Hex(signature),
-		TypedData: typedDataBase64,
-	}
-	// fmt.Printf("TypedData %s\n", sigAndData.TypedData)
-	jsonPayload, err := json.Marshal(sigAndData)
-	if err != nil {
-		log.Fatal("Error json.Marshal message:", err)
-	}
-	address, theData, signature, err := ExtractSigAndData(string(jsonPayload))
-	if err != nil {
-		log.Fatal("Error ExtractSigAndData message:", err)
-	}
-	fmt.Println("msgSender", address)
-	fmt.Println("The data: ", theData.Message)
-	fmt.Println("Signature: ", string(signature))
-	return signature
 }
 
 func trimNonPrintablePrefix(s string) string {
