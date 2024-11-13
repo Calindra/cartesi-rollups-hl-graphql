@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/calindra/nonodo/internal/convenience/decoder"
-	"github.com/calindra/nonodo/internal/convenience/repository"
-	"github.com/calindra/nonodo/internal/supervisor"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/decoder"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/repository"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/supervisor"
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"

@@ -16,25 +16,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/calindra/nonodo/internal/claimer"
-	"github.com/calindra/nonodo/internal/contracts"
-	"github.com/calindra/nonodo/internal/convenience"
-	"github.com/calindra/nonodo/internal/convenience/synchronizer"
-	synchronizernode "github.com/calindra/nonodo/internal/convenience/synchronizer_node"
-	"github.com/calindra/nonodo/internal/devnet"
-	"github.com/calindra/nonodo/internal/echoapp"
-	"github.com/calindra/nonodo/internal/health"
-	"github.com/calindra/nonodo/internal/inspect"
-	"github.com/calindra/nonodo/internal/model"
-	"github.com/calindra/nonodo/internal/paio"
-	"github.com/calindra/nonodo/internal/reader"
-	"github.com/calindra/nonodo/internal/rollup"
-	"github.com/calindra/nonodo/internal/salsa"
-	"github.com/calindra/nonodo/internal/sequencers/avail"
-	"github.com/calindra/nonodo/internal/sequencers/espresso"
-	"github.com/calindra/nonodo/internal/sequencers/inputter"
-	"github.com/calindra/nonodo/internal/sequencers/paiodecoder"
-	"github.com/calindra/nonodo/internal/supervisor"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/synchronizer"
+	synchronizernode "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/synchronizer_node"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/health"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/supervisor"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
@@ -156,7 +146,6 @@ func NewNonodoOpts() NonodoOpts {
 		PaioServerUrl:       "https://cartesi-paio-avail-turing.fly.dev",
 		DbRawUrl:            "postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable",
 		RawEnabled:          false,
-		EpochBlocks:         claimer.DEFAULT_EPOCH_BLOCKS,
 	}
 }
 
@@ -228,19 +217,12 @@ func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
 		ErrorMessage: "Request timed out",
 		Timeout:      opts.TimeoutInspect,
 	}))
-	inspect.Register(e, model)
 	health.Register(e)
 	reader.Register(e, model, convenienceService, adapter)
 	w.Workers = append(w.Workers, supervisor.HttpWorker{
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
 		Handler: e,
 	})
-
-	if opts.Salsa {
-		w.Workers = append(w.Workers, salsa.SalsaWorker{
-			Address: opts.SalsaUrl,
-		})
-	}
 
 	if opts.RawEnabled {
 		dbNodeV2 := sqlx.MustConnect("postgres", opts.DbRawUrl)
@@ -426,9 +408,6 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 		ErrorMessage: "Request timed out",
 		Timeout:      opts.TimeoutInspect,
 	}))
-	if !opts.DisableInspect {
-		inspect.Register(e, modelInstance)
-	}
 	reader.Register(e, modelInstance, convenienceService, adapter)
 	health.Register(e)
 
@@ -460,95 +439,6 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
 	}
 
-	var sequencer model.Sequencer = nil
-	inputterWorker := &inputter.InputterWorker{
-		Model:              modelInstance,
-		Provider:           opts.RpcUrl,
-		InputBoxAddress:    common.HexToAddress(opts.InputBoxAddress),
-		InputBoxBlock:      0,
-		ApplicationAddress: common.HexToAddress(opts.ApplicationAddress),
-	}
-
-	if !opts.DisableAdvance {
-		if !opts.AvailEnabled {
-			if opts.Sequencer == "inputbox" {
-				sequencer = model.NewInputBoxSequencer(modelInstance)
-				w.Workers = append(w.Workers, inputter.InputterWorker{
-					Model:              modelInstance,
-					Provider:           opts.RpcUrl,
-					InputBoxAddress:    common.HexToAddress(opts.InputBoxAddress),
-					InputBoxBlock:      opts.InputBoxBlock,
-					ApplicationAddress: common.HexToAddress(opts.ApplicationAddress),
-				})
-			} else if opts.Sequencer == "espresso" {
-				sequencer = model.NewEspressoSequencer(modelInstance)
-				w.Workers = append(w.Workers, espresso.NewEspressoListener(
-					opts.EspressoUrl,
-					opts.Namespace,
-					modelInstance.GetInputRepository(),
-					opts.FromBlock,
-					inputterWorker,
-					opts.FromBlockL1,
-				))
-			} else if opts.Sequencer == "paio" {
-				panic("sequencer not supported yet")
-			} else {
-				panic("sequencer not supported")
-			}
-		}
-
-		paioSequencerBuilder := paio.NewPaioBuilder()
-		paioSequencerBuilder.WithInputRepository(container.GetInputRepository())
-		paioSequencerBuilder.WithRpcUrl(opts.RpcUrl)
-		paioSequencerBuilder.WithNamespace(opts.Namespace)
-
-		if opts.AvailEnabled {
-			availClient, err := avail.NewAvailClient(
-				fmt.Sprintf("http://%s:%d", opts.HttpAddress, opts.HttpPort),
-				avail.DEFAULT_CHAINID_HARDHAT,
-				avail.DEFAULT_APP_ID,
-			)
-			if err != nil {
-				panic(err)
-			}
-			paioSequencerBuilder.WithPaioServerUrl(
-				opts.PaioServerUrl,
-			)
-			paioSequencerBuilder.WithAvalClient(availClient)
-		}
-		if opts.Sequencer == "espresso" {
-			paioSequencerBuilder = paioSequencerBuilder.WithEspressoUrl(opts.EspressoUrl)
-		}
-		paioSequencer := paioSequencerBuilder.Build()
-		paio.Register(e, paioSequencer)
-
-		if opts.AvailEnabled {
-			// Check if paio decoder is installed
-			paioLocation, err := paiodecoder.DownloadPaioDecoderExecutableAsNeeded()
-			if err != nil {
-				panic(err)
-			}
-			slog.Debug("AvailEnabled", "paioLocation", paioLocation)
-			w.Workers = append(w.Workers, avail.NewAvailListener(
-				opts.AvailFromBlock,
-				modelInstance.GetInputRepository(),
-				inputterWorker,
-				opts.FromBlock,
-				paioLocation,
-				opts.ApplicationAddress,
-			))
-			sequencer = model.NewInputBoxSequencer(modelInstance)
-		}
-	} else {
-		sequencer = model.NewInputBoxSequencer(modelInstance)
-	}
-
-	if opts.RawEnabled {
-		panic("use the --high-level-graphql flag")
-	}
-
-	rollup.Register(re, modelInstance, sequencer, common.HexToAddress(opts.ApplicationAddress))
-
 	w.Workers = append(w.Workers, supervisor.HttpWorker{
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
 		Handler: re,
@@ -566,29 +456,6 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 			Env: []string{fmt.Sprintf("ROLLUP_HTTP_SERVER_URL=http://%s:%v",
 				opts.HttpAddress, opts.HttpRollupsPort)},
 		})
-	} else if opts.EnableEcho {
-		fmt.Println("Starting echo app")
-		w.Workers = append(w.Workers, echoapp.EchoAppWorker{
-			RollupEndpoint: fmt.Sprintf("http://%s:%v", opts.HttpAddress, opts.HttpRollupsPort),
-		})
 	}
-
-	if opts.Salsa {
-		w.Workers = append(w.Workers, salsa.SalsaWorker{
-			Address: opts.SalsaUrl,
-		})
-	}
-
-	if opts.EpochBlocks == 0 {
-		slog.Info("Epoch, claim and proofs disabled")
-	} else {
-		w.Workers = append(w.Workers, claimer.NewClaimerWorker(
-			opts.RpcUrl,
-			container.GetVoucherRepository(),
-			container.GetNoticeRepository(),
-			opts.EpochBlocks,
-		))
-	}
-
 	return w
 }

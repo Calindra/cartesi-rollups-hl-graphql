@@ -31,7 +31,6 @@ import (
 )
 
 const (
-	celestiaUrl         = "https://raw.githubusercontent.com/miltonjonat/rollups-celestia/main/onchain/deployments/sepolia/CelestiaRelay.json"
 	openzeppelin        = "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-5.0.2.tgz"
 	rollupsContractsUrl = "https://registry.npmjs.org/@cartesi/rollups/-/rollups-2.0.0-rc.10.tgz"
 	baseContractsPath   = "package/export/artifacts/contracts/"
@@ -106,9 +105,6 @@ func main() {
 	checkErr("unzip contracts", err)
 	defer contractsTarOpenZeppelin.Close()
 
-	contractJson := downloadJsonContract(celestiaUrl)
-	defer contractJson.Close()
-
 	files := make(map[string]bool)
 	for _, b := range bindings {
 		files[b.jsonPath] = true
@@ -127,13 +123,6 @@ func main() {
 		contents[contract] = content
 	}
 
-	content := readJson(contractJson)
-	contents[baseContractsPath+"sepolia/CelestiaRelay.json"] = content
-	bindings = append(bindings, contractBinding{
-		jsonPath: baseContractsPath + "sepolia/CelestiaRelay.json",
-		typeName: "CelestiaRelay",
-		outFile:  "celestia_relay.go",
-	})
 	bindings = append(bindings, bindingsOpenZeppelin...)
 
 	for _, b := range bindings {

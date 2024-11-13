@@ -13,12 +13,12 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	cModel "github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/convenience/services"
-	nonodomodel "github.com/calindra/nonodo/internal/model"
-	"github.com/calindra/nonodo/internal/reader/graph"
-	"github.com/calindra/nonodo/internal/reader/loaders"
-	"github.com/calindra/nonodo/internal/reader/model"
+	cModel "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/services"
+	nonodomodel "github.com/calindra/cartesi-rollups-hl-graphql/internal/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/graph"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/loaders"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/reader/model"
 	"github.com/labstack/echo/v4"
 )
 

@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/calindra/nonodo/internal/commons"
-	"github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/devnet"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
 	"github.com/ethereum/go-ethereum/common"
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"

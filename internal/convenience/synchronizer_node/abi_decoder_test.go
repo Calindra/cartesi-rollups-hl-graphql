@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/calindra/nonodo/internal/commons"
-	"github.com/calindra/nonodo/internal/contracts"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/contracts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/suite"
 )

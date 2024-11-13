@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/calindra/nonodo/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
 	"github.com/google/go-github/github"
 )
 

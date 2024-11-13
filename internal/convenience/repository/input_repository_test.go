@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	convenience "github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/devnet"
+	convenience "github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
 
-	"github.com/calindra/nonodo/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/suite"
 )

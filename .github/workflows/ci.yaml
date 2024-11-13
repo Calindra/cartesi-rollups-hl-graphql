@@ -144,7 +144,7 @@ jobs:
 
   npm-publish-v1:
     runs-on: ubuntu-latest
-    name: NPM Publish v1 nonodo
+    name: NPM Publish v1 cartesi-rollups-hl-graphql
     defaults:
       run:
         working-directory: ./npm-package
@@ -184,7 +184,7 @@ jobs:
 
   npm-publish-v2:
     runs-on: ubuntu-latest
-    name: NPM Publish v2 brunodo
+    name: NPM Publish v2 ctsi-next-graphql
     defaults:
       run:
         working-directory: ./npm-package
@@ -204,8 +204,8 @@ jobs:
           TAG="${{ steps.extract_tag.outputs.tag }}"
           TAG_NO_V=$(echo "$TAG" | sed 's/^v//')
           sed -i "s/\"version\": \".*\"/\"version\": \"$TAG_NO_V\"/" package.json
-          sed -i "s/\"name\": \".*\"/\"name\": \"brunodo\"/" package.json
-          sed -i "s/\"nonodo\": \".*\"/\"brunodo\": \".\/src\/nonodo.js\"/" package.json
+          sed -i "s/\"name\": \".*\"/\"name\": \"ctsi-next-graphql\"/" package.json
+          sed -i "s/\"nonodo\": \".*\"/\"ctsi-next-graphql\": \".\/src\/nonodo.js\"/" package.json
           echo "Updated version to $TAG_NO_V in package.json"
           cp package-lock.json ..
           cat package.json

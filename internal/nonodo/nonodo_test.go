@@ -4,12 +4,10 @@
 package nonodo
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"path"
 	"strconv"
@@ -18,11 +16,10 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/calindra/nonodo/internal/commons"
-	"github.com/calindra/nonodo/internal/convenience/model"
-	"github.com/calindra/nonodo/internal/devnet"
-	"github.com/calindra/nonodo/internal/inspect"
-	"github.com/calindra/nonodo/internal/readerclient"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/commons"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/convenience/model"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
+	"github.com/calindra/cartesi-rollups-hl-graphql/internal/readerclient"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/suite"
@@ -38,7 +35,6 @@ type NonodoSuite struct {
 	workerResult  chan error
 	rpcUrl        string
 	graphqlClient graphql.Client
-	inspectClient *inspect.ClientWithResponses
 	nonce         int
 }
 
@@ -118,49 +114,6 @@ func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
 	s.Equal(3, len(response3.Inputs.Edges))
 }
 
-func (s *NonodoSuite) TestItProcessesInspectInputs() {
-	opts := NewNonodoOpts()
-	opts.EnableEcho = true
-	s.setupTest(&opts)
-
-	s.T().Log("sending inspect inputs")
-	const n = 3
-	for i := 0; i < n; i++ {
-		payload := s.makePayload()
-		response, err := s.sendInspect(payload[:])
-		s.NoError(err)
-		s.Equal(http.StatusOK, response.StatusCode())
-		s.Equal("0x", response.JSON200.ExceptionPayload)
-		s.Equal(0, response.JSON200.ProcessedInputCount)
-		s.Len(response.JSON200.Reports, 1)
-		s.Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
-		s.Equal(inspect.Accepted, response.JSON200.Status)
-	}
-}
-
-func (s *NonodoSuite) TestItWorksWithExternalApplication() {
-	opts := NewNonodoOpts()
-	opts.ApplicationArgs = []string{
-		"go",
-		"run",
-		"github.com/calindra/nonodo/internal/echoapp/echoapp",
-		"--endpoint",
-		fmt.Sprintf("http://%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
-	}
-	opts.HttpPort = 8090
-	s.setupTest(&opts)
-	time.Sleep(100 * time.Millisecond)
-
-	s.T().Log("sending inspect to external application")
-	payload := s.makePayload()
-
-	response, err := s.sendInspect(payload[:])
-	s.NoError(err)
-	slog.Debug("response", "body", string(response.Body))
-	s.Require().Equal(http.StatusOK, response.StatusCode())
-	s.Require().Equal(payload[:], s.decodeHex(response.JSON200.Reports[0].Payload))
-}
-
 //
 // Setup and tear down
 //
@@ -200,10 +153,6 @@ func (s *NonodoSuite) setupTest(opts *NonodoOpts) {
 	graphqlEndpoint := fmt.Sprintf("http://%s:%v/graphql", opts.HttpAddress, opts.HttpPort)
 	s.graphqlClient = graphql.NewClient(graphqlEndpoint, nil)
 
-	inspectEndpoint := fmt.Sprintf("http://%s:%v/", opts.HttpAddress, opts.HttpPort)
-	var err error
-	s.inspectClient, err = inspect.NewClientWithResponses(inspectEndpoint)
-	s.NoError(err)
 }
 
 func (s *NonodoSuite) TearDownTest() {
@@ -258,16 +207,6 @@ func (s *NonodoSuite) decodeHex(value string) []byte {
 	bytes, err := hexutil.Decode(value)
 	s.NoError(err)
 	return bytes
-}
-
-// Send an inspect request with the given payload.
-func (s *NonodoSuite) sendInspect(payload []byte) (*inspect.InspectPostResponse, error) {
-	return s.inspectClient.InspectPostWithBodyWithResponse(
-		s.ctx,
-		devnet.ApplicationAddress,
-		"application/octet-stream",
-		bytes.NewReader(payload),
-	)
 }
 
 //
