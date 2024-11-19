@@ -22,7 +22,6 @@ import (
 	synchronizernode "github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience/synchronizer_node"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/devnet"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/health"
-	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/supervisor"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -154,7 +153,6 @@ func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
 	w.Timeout = opts.TimeoutWorker
 	db := CreateDBInstance(opts)
 	container := convenience.NewContainer(*db, opts.AutoCount)
-	decoder := container.GetOutputDecoder()
 	convenienceService := container.GetConvenienceService()
 	adapter := reader.NewAdapterV1(db, convenienceService)
 	if opts.RpcUrl == "" && !opts.DisableDevnet {
@@ -202,14 +200,6 @@ func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
 		w.Workers = append(w.Workers, execVoucherListener)
 	}
 
-	model := model.NewNonodoModel(
-		decoder,
-		container.GetReportRepository(),
-		container.GetInputRepository(),
-		container.GetVoucherRepository(),
-		container.GetNoticeRepository(),
-	)
-
 	e := echo.New()
 	e.Use(middleware.CORS())
 	e.Use(middleware.Recover())
@@ -218,7 +208,7 @@ func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
 		Timeout:      opts.TimeoutInspect,
 	}))
 	health.Register(e)
-	reader.Register(e, model, convenienceService, adapter)
+	reader.Register(e, convenienceService, adapter)
 	w.Workers = append(w.Workers, supervisor.HttpWorker{
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
 		Handler: e,
@@ -392,15 +382,8 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 	w.Timeout = opts.TimeoutWorker
 	db := CreateDBInstance(opts)
 	container := convenience.NewContainer(*db, opts.AutoCount)
-	decoder := container.GetOutputDecoder()
 	convenienceService := container.GetConvenienceService()
 	adapter := reader.NewAdapterV1(db, convenienceService)
-	modelInstance := model.NewNonodoModel(decoder,
-		container.GetReportRepository(),
-		container.GetInputRepository(),
-		container.GetVoucherRepository(),
-		container.GetNoticeRepository(),
-	)
 	e := echo.New()
 	e.Use(middleware.CORS())
 	e.Use(middleware.Recover())
@@ -408,7 +391,7 @@ func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
 		ErrorMessage: "Request timed out",
 		Timeout:      opts.TimeoutInspect,
 	}))
-	reader.Register(e, modelInstance, convenienceService, adapter)
+	reader.Register(e, convenienceService, adapter)
 	health.Register(e)
 
 	// Start the "internal" http rollup server

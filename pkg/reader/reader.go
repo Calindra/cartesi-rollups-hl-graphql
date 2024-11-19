@@ -15,22 +15,18 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	cModel "github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience/services"
-	nonodomodel "github.com/calindra/cartesi-rollups-hl-graphql/pkg/model"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/graph"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/loaders"
-	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model"
 	"github.com/labstack/echo/v4"
 )
 
 // Register the GraphQL reader API to echo.
 func Register(
 	e *echo.Echo,
-	nonodomodel *nonodomodel.NonodoModel,
 	convenienceService *services.ConvenienceService,
 	adapter Adapter,
 ) {
 	resolver := Resolver{
-		model.NewModelWrapper(nonodomodel),
 		convenienceService,
 		adapter,
 	}
