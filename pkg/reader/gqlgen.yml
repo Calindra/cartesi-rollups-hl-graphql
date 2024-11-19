@@ -1,0 +1,60 @@
+schema:
+  - ../../api/reader.graphql
+
+exec:
+  filename: graph/generated.go
+  package: graph
+
+model:
+  filename: model/generated.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: .
+  package: reader
+  filename_template: "{name}.resolvers.go"
+
+models:
+  BigInt:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+  Input:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.Input
+  Voucher:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.Voucher
+  Proof:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.Proof
+  Notice:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.Notice
+  Report:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.Report
+  InputConnection:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.InputConnection
+  InputEdge:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.InputEdge
+  VoucherConnection:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.VoucherConnection
+  VoucherEdge:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.VoucherEdge
+  NoticeConnection:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.NoticeConnection
+  NoticeEdge:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.NoticeEdge
+  ReportConnection:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.ReportConnection
+  ReportEdge:
+    model:
+      - github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader/model.ReportEdge
