@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/devnet"
-	"github.com/calindra/cartesi-rollups-hl-graphql/internal/nonodo"
+	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/devnet"
+	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/nonodo"
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
