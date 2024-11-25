@@ -31,6 +31,16 @@ Start a Postgres instance locally using docker compose.
 make up-db-raw
 ```
 
+New configuration
+
+```sh
+export POSTGRES_GRAPHQL_DB_URL="postgres://postgres:password@localhost:5432/hlgraphql?sslmode=disable"
+export POSTGRES_NODE_DB_URL="postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable"
+./cartesi-rollups-hl-graphql
+```
+
+Old configuration
+
 When running cartesi-rollups-hl-graphql, set flag db-implementation with the value postgres
 
 ```sh
@@ -41,6 +51,7 @@ export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=password
 ./cartesi-rollups-hl-graphql -d --raw-enabled --high-level-graphql --graphile-disable-sync --db-implementation=postgres --db-raw-url=postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable --disable-devnet
 ```
+
 
 ## Contributors
 

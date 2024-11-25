@@ -3,7 +3,7 @@
 
 // This package contains the nonodo run function.
 // This is separate from the main package to facilitate testing.
-package nonodo
+package bootstrap
 
 import (
 	"context"
@@ -39,7 +39,7 @@ const (
 )
 
 // Options to nonodo.
-type NonodoOpts struct {
+type BootstrapOpts struct {
 	AutoCount          bool
 	AnvilAddress       string
 	AnvilPort          int
@@ -89,7 +89,7 @@ type NonodoOpts struct {
 }
 
 // Create the options struct with default values.
-func NewNonodoOpts() NonodoOpts {
+func NewBootstrapOpts() BootstrapOpts {
 	var (
 		defaultTimeout time.Duration = 10 * time.Second
 		graphileUrl                  = os.Getenv("GRAPHILE_URL")
@@ -105,7 +105,7 @@ func NewNonodoOpts() NonodoOpts {
 		graphileUrl = defaultGraphileUrl
 	}
 
-	return NonodoOpts{
+	return BootstrapOpts{
 		AnvilAddress:        devnet.AnvilDefaultAddress,
 		AnvilPort:           devnet.AnvilDefaultPort,
 		AnvilCommand:        "",
@@ -127,7 +127,7 @@ func NewNonodoOpts() NonodoOpts {
 		SqliteFile:          "",
 		FromBlock:           0,
 		FromBlockL1:         nil,
-		DbImplementation:    "sqlite",
+		DbImplementation:    "postgres",
 		NodeVersion:         "v1",
 		Sequencer:           "inputbox",
 		LoadTestMode:        false,
@@ -144,11 +144,11 @@ func NewNonodoOpts() NonodoOpts {
 		AutoCount:           false,
 		PaioServerUrl:       "https://cartesi-paio-avail-turing.fly.dev",
 		DbRawUrl:            "postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable",
-		RawEnabled:          false,
+		RawEnabled:          true,
 	}
 }
 
-func NewSupervisorHLGraphQL(opts NonodoOpts) supervisor.SupervisorWorker {
+func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	var w supervisor.SupervisorWorker
 	w.Timeout = opts.TimeoutWorker
 	db := CreateDBInstance(opts)
@@ -296,7 +296,7 @@ func NewAbiDecoder(abi *abi.ABI) {
 	panic("unimplemented")
 }
 
-func CreateDBInstance(opts NonodoOpts) *sqlx.DB {
+func CreateDBInstance(opts BootstrapOpts) *sqlx.DB {
 	var db *sqlx.DB
 	if opts.DbImplementation == "postgres" {
 		slog.Info("Using PostGres DB ...")
@@ -305,12 +305,16 @@ func CreateDBInstance(opts NonodoOpts) *sqlx.DB {
 		postgresDataBase := os.Getenv("POSTGRES_DB")
 		postgresUser := os.Getenv("POSTGRES_USER")
 		postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-
 		connectionString := fmt.Sprintf("host=%s port=%s user=%s "+
 			"dbname=%s password=%s sslmode=disable",
 			postgresHost, postgresPort, postgresUser,
 			postgresDataBase, postgresPassword)
-
+		dbUrl, ok := os.LookupEnv("POSTGRES_GRAPHQL_DB_URL")
+		if ok {
+			connectionString = dbUrl
+		} else {
+			slog.Warn("The environment variables POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, and POSTGRES_PASSWORD are deprecated. Please use POSTGRES_GRAPHQL_DB_URL instead.")
+		}
 		db = sqlx.MustConnect("postgres", connectionString)
 		configureConnectionPool(db)
 	} else {
@@ -344,7 +348,7 @@ func getEnvInt(envName string, defaultValue int) int {
 	return intValue
 }
 
-func handleSQLite(opts NonodoOpts) *sqlx.DB {
+func handleSQLite(opts BootstrapOpts) *sqlx.DB {
 	slog.Info("Using SQLite ...")
 	sqliteFile := opts.SqliteFile
 	if sqliteFile == "" {
@@ -374,71 +378,4 @@ func handleAnvilInstallation() (string, error) {
 
 	anvilLocation, err := devnet.CheckAnvilAndInstall(ctx)
 	return anvilLocation, err
-}
-
-// Create the nonodo supervisor.
-func NewSupervisor(opts NonodoOpts) supervisor.SupervisorWorker {
-	var w supervisor.SupervisorWorker
-	w.Timeout = opts.TimeoutWorker
-	db := CreateDBInstance(opts)
-	container := convenience.NewContainer(*db, opts.AutoCount)
-	convenienceService := container.GetConvenienceService()
-	adapter := reader.NewAdapterV1(db, convenienceService)
-	e := echo.New()
-	e.Use(middleware.CORS())
-	e.Use(middleware.Recover())
-	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		ErrorMessage: "Request timed out",
-		Timeout:      opts.TimeoutInspect,
-	}))
-	reader.Register(e, convenienceService, adapter)
-	health.Register(e)
-
-	// Start the "internal" http rollup server
-	re := echo.New()
-	re.Use(middleware.CORS())
-	re.Use(middleware.Recover())
-	re.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-		ErrorMessage: "Request timed out",
-		Timeout:      opts.TimeoutAdvance,
-	}))
-
-	if opts.RpcUrl == "" && !opts.DisableDevnet {
-		anvilLocation := opts.AnvilCommand
-		if anvilLocation == "" {
-			al, err := handleAnvilInstallation()
-			if err != nil {
-				panic(err)
-			}
-			anvilLocation = al
-		}
-
-		w.Workers = append(w.Workers, devnet.AnvilWorker{
-			Address:  opts.AnvilAddress,
-			Port:     opts.AnvilPort,
-			Verbose:  opts.AnvilVerbose,
-			AnvilCmd: anvilLocation,
-		})
-		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
-	}
-
-	w.Workers = append(w.Workers, supervisor.HttpWorker{
-		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpRollupsPort),
-		Handler: re,
-	})
-	w.Workers = append(w.Workers, supervisor.HttpWorker{
-		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
-		Handler: e,
-	})
-	if len(opts.ApplicationArgs) > 0 {
-		fmt.Println("Starting app with supervisor")
-		w.Workers = append(w.Workers, supervisor.CommandWorker{
-			Name:    "app",
-			Command: opts.ApplicationArgs[0],
-			Args:    opts.ApplicationArgs[1:],
-			Env: []string{fmt.Sprintf("ROLLUP_HTTP_SERVER_URL=http://%s:%v",
-				opts.HttpAddress, opts.HttpRollupsPort)},
-		})
-	}
-	return w
 }

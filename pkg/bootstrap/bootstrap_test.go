@@ -1,7 +1,7 @@
 // Copyright (c) Gabriel de Quadros Ligneul
 // SPDX-License-Identifier: Apache-2.0 (see LICENSE)
 
-package nonodo
+package bootstrap
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type NonodoSuite struct {
+type BootstrapSuite struct {
 	suite.Suite
 }
 
@@ -17,7 +17,7 @@ type NonodoSuite struct {
 // Test Cases
 //
 
-func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
+func (s *BootstrapSuite) TestItProcessesAdvanceInputs() {
 	s.Equal(1, 1)
 }
 
@@ -26,5 +26,5 @@ func (s *NonodoSuite) TestItProcessesAdvanceInputs() {
 //
 
 func TestNonodoSuite(t *testing.T) {
-	suite.Run(t, &NonodoSuite{})
+	suite.Run(t, &BootstrapSuite{})
 }

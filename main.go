@@ -1,7 +1,7 @@
 // Copyright (c) Gabriel de Quadros Ligneul
 // SPDX-License-Identifier: Apache-2.0 (see LICENSE)
 
-// This package contains the main function that executes the nonodo command.
+// This package contains the main function that executes the hlgraphql command.
 package main
 
 import (
@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/bootstrap"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/devnet"
-	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/nonodo"
 	"github.com/carlmjohnson/versioninfo"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -51,8 +51,8 @@ Press Ctrl+C to stop the node
 var tempFromBlockL1 uint64
 
 var cmd = &cobra.Command{
-	Use:     "nonodo [flags] [-- application [args]...]",
-	Short:   "nonodo is a development node for Cartesi Rollups",
+	Use:     "hlgraphql [flags] [-- application [args]...]",
+	Short:   "hlgraphql is a development node for Cartesi Rollups",
 	Run:     run,
 	Version: versioninfo.Short(),
 }
@@ -133,7 +133,7 @@ var availCmd = &cobra.Command{
 var (
 	debug bool
 	color bool
-	opts  = nonodo.NewNonodoOpts()
+	opts  = bootstrap.NewBootstrapOpts()
 )
 
 func ArrBytesAttr(key string, v []byte) slog.Attr {
@@ -174,7 +174,7 @@ func init() {
 	cmd.Flags().BoolVarP(&debug, "enable-debug", "d", false, "If set, enable debug output")
 	cmd.Flags().BoolVar(&color, "enable-color", true, "If set, enables logs color")
 	cmd.Flags().BoolVar(&opts.EnableEcho, "enable-echo", opts.EnableEcho,
-		"If set, nonodo starts a built-in echo application")
+		"If set, hlgraphql starts a built-in echo application")
 
 	cmd.Flags().StringVar(&opts.Sequencer, "sequencer", opts.Sequencer,
 		"Set the sequencer (inputbox[default] or espresso)")
@@ -183,29 +183,29 @@ func init() {
 
 	cmd.Flags().Uint64Var(&opts.Namespace, "namespace", opts.Namespace,
 		"Set the namespace for espresso")
-	cmd.Flags().DurationVar(&opts.TimeoutWorker, "timeout-worker", opts.TimeoutWorker, "Timeout for workers. Example: nonodo --timeout-worker 30s")
-	cmd.Flags().DurationVar(&opts.TimeoutInspect, "sm-deadline-inspect-state", opts.TimeoutInspect, "Timeout for inspect requests. Example: nonodo --sm-deadline-inspect-state 30s")
-	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: nonodo --sm-deadline-advance-state 30s")
+	cmd.Flags().DurationVar(&opts.TimeoutWorker, "timeout-worker", opts.TimeoutWorker, "Timeout for workers. Example: hlgraphql --timeout-worker 30s")
+	cmd.Flags().DurationVar(&opts.TimeoutInspect, "sm-deadline-inspect-state", opts.TimeoutInspect, "Timeout for inspect requests. Example: hlgraphql --sm-deadline-inspect-state 30s")
+	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: hlgraphql --sm-deadline-advance-state 30s")
 
 	// disable-*
 	cmd.Flags().BoolVar(&opts.DisableDevnet, "disable-devnet", opts.DisableDevnet,
-		"If set, nonodo won't start a local devnet")
+		"If set, hlgraphql won't start a local devnet")
 	cmd.Flags().BoolVar(&opts.DisableAdvance, "disable-advance", opts.DisableAdvance,
-		"If set, nonodo won't start the inputter to get inputs from the local chain")
+		"If set, hlgraphql won't start the inputter to get inputs from the local chain")
 	cmd.Flags().BoolVar(&opts.DisableInspect, "disable-inspect", opts.DisableInspect,
-		"If set, nonodo won't accept inspect inputs")
+		"If set, hlgraphql won't accept inspect inputs")
 
 	// http-*
 	cmd.Flags().StringVar(&opts.HttpAddress, "http-address", opts.HttpAddress,
-		"HTTP address used by nonodo to serve its APIs")
+		"HTTP address used by hlgraphql to serve its APIs")
 	cmd.Flags().IntVar(&opts.HttpPort, "http-port", opts.HttpPort,
-		"HTTP port used by nonodo to serve its external APIs")
+		"HTTP port used by hlgraphql to serve its external APIs")
 	cmd.Flags().IntVar(&opts.HttpRollupsPort, "http-rollups-port", opts.HttpRollupsPort,
-		"HTTP port used by nonodo to serve its internal APIs")
+		"HTTP port used by hlgraphql to serve its internal APIs")
 
 	// rpc-url
 	cmd.Flags().StringVar(&opts.RpcUrl, "rpc-url", opts.RpcUrl,
-		"If set, nonodo connects to this url instead of setting up Anvil")
+		"If set, hlgraphql connects to this url instead of setting up Anvil")
 
 	// convenience experimental implementation
 	cmd.Flags().BoolVar(&opts.HLGraphQL, "high-level-graphql", opts.HLGraphQL,
@@ -300,7 +300,7 @@ func run(cmd *cobra.Command, args []string) {
 		inspectMessage = inspectMessageText
 	}
 
-	// start nonodo
+	// start hlgraphql
 	ready := make(chan struct{}, 1)
 	go func() {
 		select {
@@ -322,19 +322,13 @@ func run(cmd *cobra.Command, args []string) {
 				"ROLLUPS_PORT",
 				fmt.Sprint(opts.HttpRollupsPort), -1)
 			fmt.Println(msg)
-			slog.Info("nonodo: ready", "after", time.Since(startTime))
+			slog.Info("hlgraphql: ready", "after", time.Since(startTime))
 		case <-ctx.Done():
 		}
 	}()
 	LoadEnv()
-	if opts.HLGraphQL {
-		err := nonodo.NewSupervisorHLGraphQL(opts).Start(ctx, ready)
-		cobra.CheckErr(err)
-	} else {
-		opts.AutoCount = true // not check the Idempotency
-		err := nonodo.NewSupervisor(opts).Start(ctx, ready)
-		cobra.CheckErr(err)
-	}
+	err := bootstrap.NewSupervisorHLGraphQL(opts).Start(ctx, ready)
+	cobra.CheckErr(err)
 }
 
 //go:embed .env
