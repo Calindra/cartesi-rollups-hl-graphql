@@ -36,14 +36,12 @@ Inspect running at http://localhost:HTTP_PORT/inspect/`
 var startupMessage = `
 Http Rollups for development started at http://localhost:ROLLUPS_PORT
 GraphQL running at http://localhost:HTTP_PORT/graphql
-INSPECT_MESSAGE
 Press Ctrl+C to stop the node
 `
 
 var startupMessageWithLambada = `
 Http Rollups for development started at http://localhost:ROLLUPS_PORT
 GraphQL running at http://localhost:HTTP_PORT/graphql
-INSPECT_MESSAGE
 Lambada running at http://SALSA_URL
 Press Ctrl+C to stop the node
 `
@@ -250,6 +248,12 @@ func init() {
 
 }
 
+func deprecatedWarning(flag string, replacement string) {
+	if strings.Contains(strings.Join(os.Args, " "), "--"+flag) {
+		slog.Warn(fmt.Sprintf("The '%s' flag is deprecated. %s", flag, replacement))
+	}
+}
+
 func run(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	startTime := time.Now()
@@ -281,6 +285,11 @@ func run(cmd *cobra.Command, args []string) {
 	if cmd.Flags().Changed("from-l1-block") {
 		opts.FromBlockL1 = &tempFromBlockL1
 	}
+	deprecatedWarning("high-level-graphql", "")
+	deprecatedWarning("graphile-disable-sync", "")
+	deprecatedWarning("disable-devnet", "")
+	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
+
 	opts.ApplicationArgs = args
 
 	// handle signals with notify context

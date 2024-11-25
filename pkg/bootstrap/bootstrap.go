@@ -215,7 +215,11 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	})
 
 	if opts.RawEnabled {
-		dbNodeV2 := sqlx.MustConnect("postgres", opts.DbRawUrl)
+		dbRawUrl, ok := os.LookupEnv("POSTGRES_NODE_DB_URL")
+		if !ok {
+			dbRawUrl = opts.DbRawUrl
+		}
+		dbNodeV2 := sqlx.MustConnect("postgres", dbRawUrl)
 		rawRepository := synchronizernode.NewRawRepository(opts.DbRawUrl, dbNodeV2)
 		synchronizerUpdate := synchronizernode.NewSynchronizerUpdate(
 			container.GetRawInputRepository(),
