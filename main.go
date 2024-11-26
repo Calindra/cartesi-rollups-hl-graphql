@@ -205,10 +205,6 @@ func init() {
 	cmd.Flags().StringVar(&opts.RpcUrl, "rpc-url", opts.RpcUrl,
 		"If set, hlgraphql connects to this url instead of setting up Anvil")
 
-	// convenience experimental implementation
-	cmd.Flags().BoolVar(&opts.HLGraphQL, "high-level-graphql", opts.HLGraphQL,
-		"If set, enables the convenience layer experiment")
-
 	// database file
 	cmd.Flags().StringVar(&opts.SqliteFile, "sqlite-file", opts.SqliteFile,
 		"The sqlite file to load the state")

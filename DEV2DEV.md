@@ -44,10 +44,10 @@ docker compose down --rmi local --remove-orphans --volumes
 go build
 ```
 
-Run the nonodo with HL GraphQL flag enabled
+Run the HL GraphQL flag enabled
 
 ```shell
-go run . --high-level-graphql --enable-debug --node-version v2
+go run . --enable-debug --node-version v2
 ```
 
 ```shell
@@ -56,7 +56,7 @@ export POSTGRES_PORT=5432
 export POSTGRES_DB=mydatabase
 export POSTGRES_USER=myuser
 export POSTGRES_PASSWORD=mypassword
-go run . --http-address=0.0.0.0 --high-level-graphql --enable-debug --node-version v2 --db-implementation postgres
+go run . --http-address=0.0.0.0  --enable-debug --node-version v2 --db-implementation postgres
 ```
 
 Disable sync
@@ -67,7 +67,7 @@ export POSTGRES_PORT=5432
 export POSTGRES_DB=mydatabase
 export POSTGRES_USER=myuser
 export POSTGRES_PASSWORD=mypassword
-go run . --http-address=0.0.0.0 --high-level-graphql --enable-debug --node-version v2 --db-implementation postgres --graphile-disable-sync
+go run . --http-address=0.0.0.0 --enable-debug --node-version v2 --db-implementation postgres --graphile-disable-sync
 ```
 
 ## Environment Variables

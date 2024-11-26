@@ -64,7 +64,6 @@ type BootstrapOpts struct {
 	DisableInspect bool
 	// If set, start application.
 	ApplicationArgs     []string
-	HLGraphQL           bool
 	SqliteFile          string
 	FromBlock           uint64
 	FromBlockL1         *uint64
@@ -123,7 +122,6 @@ func NewBootstrapOpts() BootstrapOpts {
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
-		HLGraphQL:           false,
 		SqliteFile:          "",
 		FromBlock:           0,
 		FromBlockL1:         nil,
