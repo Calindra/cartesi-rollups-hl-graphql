@@ -84,7 +84,7 @@
 
             shellHook = ''
               export CGO_CFLAGS="-O2 -Wno-error=cpp"
-              [ -e "./nonodo" ] && source <(./nonodo completion bash)
+              [ -e "./cartesi-rollups-hl-graphql" ] && source <(./nonodo completion bash)
             '';
           };
         }
