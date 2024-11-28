@@ -55,6 +55,8 @@ type BootstrapOpts struct {
 	EspressoUrl string
 	// If set, start echo dapp.
 	EnableEcho bool
+	// If set, disables devnet.
+	DisableDevnet bool
 	// If set, disables advances.
 	DisableAdvance bool
 	// If set, disables inspects.
@@ -115,6 +117,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		RpcUrl:              "",
 		EspressoUrl:         "https://query.decaf.testnet.espresso.network",
 		EnableEcho:          false,
+		DisableDevnet:       true,
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
@@ -149,6 +152,16 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	container := convenience.NewContainer(*db, opts.AutoCount)
 	convenienceService := container.GetConvenienceService()
 	adapter := reader.NewAdapterV1(db, convenienceService)
+
+	if opts.RpcUrl == "" && !opts.DisableDevnet {
+		w.Workers = append(w.Workers, devnet.AnvilWorker{
+			Address:  opts.AnvilAddress,
+			Port:     opts.AnvilPort,
+			Verbose:  opts.AnvilVerbose,
+			AnvilCmd: "anvil",
+		})
+		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
+	}
 
 	if !opts.LoadTestMode && !opts.GraphileDisableSync {
 		slog.Debug("Sync initialization")
@@ -346,4 +359,3 @@ func handleSQLite(opts BootstrapOpts) *sqlx.DB {
 
 	return sqlx.MustConnect("sqlite3", sqliteFile)
 }
-
