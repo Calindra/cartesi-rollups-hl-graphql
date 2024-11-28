@@ -4,6 +4,7 @@
 package devnet
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/supervisor"
 )
 
 // Default port for the Ethereum node.
@@ -39,6 +42,30 @@ type AnvilWorker struct {
 	Port     int
 	Verbose  bool
 	AnvilCmd string
+}
+
+func (w AnvilWorker) String() string {
+	return anvilCommand
+}
+
+func (w AnvilWorker) Start(ctx context.Context, ready chan<- struct{}) error {
+	dir, err := makeStateTemp()
+	if err != nil {
+		return err
+	}
+	defer removeTemp(dir)
+	slog.Debug("anvil: created temp dir with state file", "dir", dir)
+
+	var server supervisor.ServerWorker
+	server.Name = anvilCommand
+	server.Command = anvilCommand
+	server.Port = w.Port
+	server.Args = append(server.Args, "--port", fmt.Sprint(w.Port))
+	server.Args = append(server.Args, "--load-state", path.Join(dir, stateFileName))
+	if !w.Verbose {
+		server.Args = append(server.Args, "--silent")
+	}
+	return server.Start(ctx, ready)
 }
 
 // Define a struct to represent the structure of your JSON data
@@ -95,4 +122,12 @@ func makeStateTemp() (string, error) {
 		return "", fmt.Errorf("anvil: failed to write state file: %w", err)
 	}
 	return tempDir, nil
+}
+
+// Delete the temporary directory.
+func removeTemp(dir string) {
+	err := os.RemoveAll(dir)
+	if err != nil {
+		slog.Warn("anvil: failed to remove temp file", "error", err)
+	}
 }
