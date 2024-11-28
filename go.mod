@@ -19,7 +19,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.16
-	golang.org/x/sys v0.25.0
 )
 
 require (
@@ -28,6 +27,7 @@ require (
 	github.com/ethereum/go-verkle v0.1.1-0.20240829091221-dffa7562dbe9 // indirect
 	github.com/klauspost/compress v1.17.3 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 )
 
 replace (
