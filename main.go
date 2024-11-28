@@ -75,15 +75,6 @@ var CompletionCmd = &cobra.Command{
 	},
 }
 
-var addressBookCmd = &cobra.Command{
-	Use:   "address-book",
-	Short: "Show address book",
-	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("Read json and print address...")
-		devnet.ShowAddresses()
-	},
-}
-
 // Celestia Network
 type CelestiaOpts struct {
 	Payload     string
@@ -152,14 +143,6 @@ func CheckIfValidSize(size uint64) error {
 }
 
 func init() {
-	// anvil-*
-	cmd.Flags().StringVar(&opts.AnvilAddress, "anvil-address", opts.AnvilAddress,
-		"HTTP address used by Anvil")
-	cmd.Flags().IntVar(&opts.AnvilPort, "anvil-port", opts.AnvilPort,
-		"HTTP port used by Anvil")
-	cmd.Flags().BoolVar(&opts.AnvilVerbose, "anvil-verbose", opts.AnvilVerbose,
-		"If set, prints Anvil's output")
-
 	// contracts-*
 	cmd.Flags().StringVar(&opts.ApplicationAddress, "contracts-application-address",
 		opts.ApplicationAddress, "Application contract address")
@@ -267,9 +250,6 @@ func run(cmd *cobra.Command, args []string) {
 	// check args
 	checkEthAddress(cmd, "address-input-box")
 	checkEthAddress(cmd, "address-application")
-	if opts.AnvilPort == 0 {
-		exitf("--anvil-port cannot be 0")
-	}
 	if !cmd.Flags().Changed("sequencer") && cmd.Flags().Changed("rpc-url") && !cmd.Flags().Changed("contracts-input-box-block") {
 		exitf("must set --contracts-input-box-block when setting --rpc-url")
 	}
@@ -363,7 +343,7 @@ func LoadEnv() {
 }
 
 func main() {
-	cmd.AddCommand(addressBookCmd, celestiaCmd, CompletionCmd, espressoCmd, availCmd)
+	cmd.AddCommand(celestiaCmd, CompletionCmd, espressoCmd, availCmd)
 	cobra.CheckErr(cmd.Execute())
 }
 

@@ -40,10 +40,6 @@ const (
 // Options to nonodo.
 type BootstrapOpts struct {
 	AutoCount          bool
-	AnvilAddress       string
-	AnvilPort          int
-	AnvilVerbose       bool
-	AnvilCommand       string
 	HttpAddress        string
 	HttpPort           int
 	HttpRollupsPort    int
@@ -102,10 +98,6 @@ func NewBootstrapOpts() BootstrapOpts {
 	}
 
 	return BootstrapOpts{
-		AnvilAddress:        devnet.AnvilDefaultAddress,
-		AnvilPort:           devnet.AnvilDefaultPort,
-		AnvilCommand:        "",
-		AnvilVerbose:        false,
 		HttpAddress:         "127.0.0.1",
 		HttpPort:            DefaultHttpPort,
 		HttpRollupsPort:     DefaultRollupsPort,
@@ -168,7 +160,6 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 
 		w.Workers = append(w.Workers, synchronizer)
 
-		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
 		fromBlock := new(big.Int).SetUint64(opts.FromBlock)
 
 		execVoucherListener := convenience.NewExecListener(
