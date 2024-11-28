@@ -49,7 +49,7 @@ export POSTGRES_PORT=5432
 export POSTGRES_DB=hlgraphql
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=password
-./cartesi-rollups-hl-graphql --raw-enabled --graphile-disable-sync --db-implementation=postgres --db-raw-url="postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable" --disable-devnet
+./cartesi-rollups-hl-graphql --raw-enabled --graphile-disable-sync --db-implementation=postgres --db-raw-url="postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable"
 ```
 
 ## Contributors
