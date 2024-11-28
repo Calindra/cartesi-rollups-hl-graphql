@@ -6,7 +6,6 @@
 package bootstrap
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math/big"
@@ -56,8 +55,6 @@ type BootstrapOpts struct {
 	EspressoUrl string
 	// If set, start echo dapp.
 	EnableEcho bool
-	// If set, disables devnet.
-	DisableDevnet bool
 	// If set, disables advances.
 	DisableAdvance bool
 	// If set, disables inspects.
@@ -118,7 +115,6 @@ func NewBootstrapOpts() BootstrapOpts {
 		RpcUrl:              "",
 		EspressoUrl:         "https://query.decaf.testnet.espresso.network",
 		EnableEcho:          false,
-		DisableDevnet:       false,
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
@@ -153,20 +149,6 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	container := convenience.NewContainer(*db, opts.AutoCount)
 	convenienceService := container.GetConvenienceService()
 	adapter := reader.NewAdapterV1(db, convenienceService)
-	if opts.RpcUrl == "" && !opts.DisableDevnet {
-		anvilLocation, err := handleAnvilInstallation()
-		if err != nil {
-			panic(err)
-		}
-
-		w.Workers = append(w.Workers, devnet.AnvilWorker{
-			Address:  opts.AnvilAddress,
-			Port:     opts.AnvilPort,
-			Verbose:  opts.AnvilVerbose,
-			AnvilCmd: anvilLocation,
-		})
-		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
-	}
 
 	if !opts.LoadTestMode && !opts.GraphileDisableSync {
 		slog.Debug("Sync initialization")
@@ -365,19 +347,3 @@ func handleSQLite(opts BootstrapOpts) *sqlx.DB {
 	return sqlx.MustConnect("sqlite3", sqliteFile)
 }
 
-func handleAnvilInstallation() (string, error) {
-	// Create Anvil Worker
-	var timeoutAnvil time.Duration = 10 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), timeoutAnvil)
-	defer cancel()
-
-	go func() {
-		<-ctx.Done()
-		if ctx.Err() == context.DeadlineExceeded {
-			slog.Error("Timeout waiting for anvil")
-		}
-	}()
-
-	anvilLocation, err := devnet.CheckAnvilAndInstall(ctx)
-	return anvilLocation, err
-}

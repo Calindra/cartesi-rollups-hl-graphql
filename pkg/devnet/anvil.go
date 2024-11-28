@@ -4,19 +4,14 @@
 package devnet
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path"
 	"sort"
 	"strings"
-
-	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/commons"
-	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/supervisor"
 )
 
 // Default port for the Ethereum node.
@@ -53,44 +48,6 @@ type ContractInfo struct {
 	} `json:"contracts"`
 }
 
-func (w AnvilWorker) String() string {
-	return anvilCommand
-}
-
-// Try to install anvil
-func InstallAnvil(ctx context.Context) (string, error) {
-	anvilClient := commons.NewAnvilRelease()
-	anvilExec, err := commons.HandleReleaseExecution(ctx, anvilClient)
-	if err != nil {
-		return "", fmt.Errorf("anvil: %w", err)
-	}
-	return anvilExec, nil
-}
-
-func GetAnvilVersion(anvilExec string) (string, error) {
-	output, err := exec.Command(anvilExec, "--version").Output()
-	if err != nil {
-		return "", fmt.Errorf("anvil: failed to run anvil: %w", err)
-	}
-	anvilVersion := strings.TrimSpace(string(output))
-	return anvilVersion, nil
-}
-
-// For while, we dont check if anvil is already installed.
-// We always install anvil.
-func CheckAnvilAndInstall(ctx context.Context) (string, error) {
-	location, err := InstallAnvil(ctx)
-	if err != nil {
-		return "", fmt.Errorf("anvil: failed to install %w", err)
-	}
-	anvilVersion, err := GetAnvilVersion(location)
-	if err != nil {
-		return "", err
-	}
-	slog.Debug("anvil: installed anvil", "location", location, "version", anvilVersion)
-	return location, nil
-}
-
 func GetContractInfo() *ContractInfo {
 	var contracts ContractInfo
 	if err := json.Unmarshal(localhost, &contracts); err != nil {
@@ -124,32 +81,6 @@ func ShowAddresses() {
 	}
 }
 
-func (w AnvilWorker) Start(ctx context.Context, ready chan<- struct{}) error {
-	dir, err := makeStateTemp()
-	if err != nil {
-		return err
-	}
-	defer removeTemp(dir)
-	slog.Debug("anvil: created temp dir with state file", "dir", dir)
-
-	if w.AnvilCmd == "" {
-		w.AnvilCmd = anvilCommand
-	}
-
-	var server supervisor.ServerWorker
-	server.Name = anvilCommand
-	server.Command = w.AnvilCmd
-	server.Port = w.Port
-	server.Args = append(server.Args, "--host", fmt.Sprint(w.Address))
-	server.Args = append(server.Args, "--port", fmt.Sprint(w.Port))
-	server.Args = append(server.Args, "--load-state", path.Join(dir, stateFileName))
-	// server.Args = append(server.Args, "--tracing")
-	if !w.Verbose {
-		server.Args = append(server.Args, "--silent")
-	}
-	return server.Start(ctx, ready)
-}
-
 // Create a temporary directory with the state file in it.
 // The directory should be removed by the callee.
 func makeStateTemp() (string, error) {
@@ -164,12 +95,4 @@ func makeStateTemp() (string, error) {
 		return "", fmt.Errorf("anvil: failed to write state file: %w", err)
 	}
 	return tempDir, nil
-}
-
-// Delete the temporary directory.
-func removeTemp(dir string) {
-	err := os.RemoveAll(dir)
-	if err != nil {
-		slog.Warn("anvil: failed to remove temp file", "error", err)
-	}
 }
