@@ -39,13 +39,6 @@ GraphQL running at http://localhost:HTTP_PORT/graphql
 Press Ctrl+C to stop the node
 `
 
-var startupMessageWithLambada = `
-Http Rollups for development started at http://localhost:ROLLUPS_PORT
-GraphQL running at http://localhost:HTTP_PORT/graphql
-Lambada running at http://SALSA_URL
-Press Ctrl+C to stop the node
-`
-
 var tempFromBlockL1 uint64
 
 var cmd = &cobra.Command{
@@ -157,8 +150,6 @@ func init() {
 	cmd.Flags().BoolVar(&opts.EnableEcho, "enable-echo", opts.EnableEcho,
 		"If set, hlgraphql starts a built-in echo application")
 
-	cmd.Flags().StringVar(&opts.Sequencer, "sequencer", opts.Sequencer,
-		"Set the sequencer (inputbox[default] or espresso)")
 	cmd.Flags().StringVar(&opts.EspressoUrl, "espresso-url", opts.EspressoUrl,
 		"Set the Espresso base url")
 
@@ -209,17 +200,6 @@ func init() {
 
 	cmd.Flags().StringVar(&opts.GraphileUrl, "graphile-url", opts.GraphileUrl, "URL used to connect to Graphile")
 
-	cmd.Flags().BoolVar(&opts.Salsa, "salsa", opts.Salsa, "If set, starts salsa")
-
-	cmd.Flags().StringVar(&opts.SalsaUrl, "salsa-url", opts.SalsaUrl, "Url used to start Salsa")
-	cmd.Flags().BoolVar(&opts.AvailEnabled, "avail-enabled", opts.AvailEnabled, "If set, enables Avail with Paio's sequencer")
-	cmd.Flags().Uint64Var(&opts.AvailFromBlock, "avail-from-block", opts.AvailFromBlock, "The beginning of the queried range for events")
-
-	cmd.Flags().StringVar(&opts.PaioServerUrl, "paio-server-url", opts.PaioServerUrl, "The Paio's server url")
-
-	cmd.Flags().StringVar(&opts.DbRawUrl, "db-raw-url", opts.DbRawUrl, "The raw database url")
-	cmd.Flags().BoolVar(&opts.RawEnabled, "raw-enabled", opts.RawEnabled, "If set, enables raw database")
-
 	cmd.Flags().IntVar(&opts.EpochBlocks, "epoch-blocks", opts.EpochBlocks,
 		"Number of blocks in each epoch")
 
@@ -263,6 +243,14 @@ func run(cmd *cobra.Command, args []string) {
 	deprecatedWarning("graphile-disable-sync", "")
 	deprecatedWarning("disable-devnet", "")
 	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
+	deprecatedWarning("raw-enabled", "")
+	deprecatedWarning("db-raw-url", "")
+	deprecatedWarning("sequencer", "")
+	deprecatedWarning("salsa", "")
+	deprecatedWarning("salsa-url", "")
+	deprecatedWarning("avail-enabled", "")
+	deprecatedWarning("avail-from-block", "")
+	deprecatedWarning("paio-server-url", "")
 
 	opts.ApplicationArgs = args
 
@@ -270,13 +258,7 @@ func run(cmd *cobra.Command, args []string) {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	var startMessage string
-
-	if opts.Salsa {
-		startMessage = startupMessageWithLambada
-	} else {
-		startMessage = startupMessage
-	}
+	startMessage := startupMessage
 
 	var inspectMessage string
 	if !opts.DisableInspect {
@@ -296,10 +278,6 @@ func run(cmd *cobra.Command, args []string) {
 				msg,
 				"HTTP_PORT",
 				fmt.Sprint(opts.HttpPort), -1)
-			msg = strings.Replace(
-				msg,
-				"SALSA_URL",
-				fmt.Sprint(opts.SalsaUrl), -1)
 			msg = strings.Replace(
 				msg,
 				"ROLLUPS_PORT",
