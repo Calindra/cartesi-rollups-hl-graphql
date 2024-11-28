@@ -119,7 +119,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		RpcUrl:              "",
 		EspressoUrl:         "https://query.decaf.testnet.espresso.network",
 		EnableEcho:          false,
-		DisableDevnet:       false,
+		DisableDevnet:       true,
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
