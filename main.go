@@ -200,6 +200,9 @@ func init() {
 
 	cmd.Flags().StringVar(&opts.GraphileUrl, "graphile-url", opts.GraphileUrl, "URL used to connect to Graphile")
 
+	cmd.Flags().StringVar(&opts.DbRawUrl, "db-raw-url", opts.DbRawUrl, "The raw database url")
+	cmd.Flags().BoolVar(&opts.RawEnabled, "raw-enabled", opts.RawEnabled, "If set, enables raw database")
+
 	cmd.Flags().IntVar(&opts.EpochBlocks, "epoch-blocks", opts.EpochBlocks,
 		"Number of blocks in each epoch")
 
@@ -243,8 +246,6 @@ func run(cmd *cobra.Command, args []string) {
 	deprecatedWarning("graphile-disable-sync", "")
 	deprecatedWarning("disable-devnet", "")
 	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
-	deprecatedWarning("raw-enabled", "")
-	deprecatedWarning("db-raw-url", "")
 	deprecatedWarning("sequencer", "")
 	deprecatedWarning("salsa", "")
 	deprecatedWarning("salsa-url", "")

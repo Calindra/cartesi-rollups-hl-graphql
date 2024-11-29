@@ -15,8 +15,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/contracts"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience/synchronizer"
+	synchronizernode "github.com/calindra/cartesi-rollups-hl-graphql/pkg/convenience/synchronizer_node"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/devnet"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/health"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader"
@@ -68,6 +70,7 @@ type BootstrapOpts struct {
 	GraphileUrl         string
 	GraphileDisableSync bool
 	DbRawUrl            string
+	RawEnabled          bool
 	EpochBlocks         int
 }
 
@@ -115,6 +118,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		GraphileDisableSync: false,
 		AutoCount:           false,
 		DbRawUrl:            "postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable",
+		RawEnabled:          true,
 	}
 }
 
@@ -168,6 +172,81 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
 		Handler: e,
 	})
+
+	if opts.RawEnabled {
+		dbRawUrl, ok := os.LookupEnv("POSTGRES_NODE_DB_URL")
+		if !ok {
+			dbRawUrl = opts.DbRawUrl
+		}
+		dbNodeV2 := sqlx.MustConnect("postgres", dbRawUrl)
+		rawRepository := synchronizernode.NewRawRepository(opts.DbRawUrl, dbNodeV2)
+		synchronizerUpdate := synchronizernode.NewSynchronizerUpdate(
+			container.GetRawInputRepository(),
+			rawRepository,
+			container.GetInputRepository(),
+		)
+		synchronizerReport := synchronizernode.NewSynchronizerReport(
+			container.GetReportRepository(),
+			rawRepository,
+		)
+		synchronizerOutputUpdate := synchronizernode.NewSynchronizerOutputUpdate(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+		)
+
+		abi, err := contracts.OutputsMetaData.GetAbi()
+		if err != nil {
+			panic(err)
+		}
+		abiDecoder := synchronizernode.NewAbiDecoder(abi)
+
+		inputAbi, err := contracts.InputsMetaData.GetAbi()
+		if err != nil {
+			panic(err)
+		}
+
+		inputAbiDecoder := synchronizernode.NewAbiDecoder(inputAbi)
+
+		synchronizerOutputCreate := synchronizernode.NewSynchronizerOutputCreate(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+			abiDecoder,
+		)
+
+		synchronizerOutputExecuted := synchronizernode.NewSynchronizerOutputExecuted(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+		)
+
+		synchronizerInputCreate := synchronizernode.NewSynchronizerInputCreator(
+			container.GetInputRepository(),
+			container.GetRawInputRepository(),
+			rawRepository,
+			inputAbiDecoder,
+		)
+
+		rawSequencer := synchronizernode.NewSynchronizerCreateWorker(
+			container.GetInputRepository(),
+			container.GetRawInputRepository(),
+			opts.DbRawUrl,
+			rawRepository,
+			&synchronizerUpdate,
+			container.GetOutputDecoder(),
+			synchronizerReport,
+			synchronizerOutputUpdate,
+			container.GetRawOutputRefRepository(),
+			synchronizerOutputCreate,
+			synchronizerInputCreate,
+			synchronizerOutputExecuted,
+		)
+		w.Workers = append(w.Workers, rawSequencer)
+	}
 
 	cleanSync := synchronizer.NewCleanSynchronizer(container.GetSyncRepository(), nil)
 	w.Workers = append(w.Workers, cleanSync)
