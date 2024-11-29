@@ -67,6 +67,7 @@ type BootstrapOpts struct {
 	TimeoutWorker       time.Duration
 	GraphileUrl         string
 	GraphileDisableSync bool
+	DbRawUrl            string
 	EpochBlocks         int
 }
 
@@ -113,6 +114,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		GraphileUrl:         graphileUrl,
 		GraphileDisableSync: false,
 		AutoCount:           false,
+		DbRawUrl:            "postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable",
 	}
 }
 
