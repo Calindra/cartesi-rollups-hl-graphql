@@ -46,7 +46,8 @@ jobs:
           export POSTGRES_DB=hlgraphql
           export POSTGRES_USER=postgres
           export POSTGRES_PASSWORD=password
-          nohup ./cartesi-rollups-hl-graphql -d --raw-enabled --graphile-disable-sync --db-implementation=postgres --db-raw-url=postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable &
+          export POSTGRES_NODE_DB_URL="postgres://postgres:password@localhost:5432/rollupsdb?sslmode=disable"
+          nohup ./cartesi-rollups-hl-graphql -d --raw-enabled --graphile-disable-sync --db-implementation=postgres &
 
       - name: Install k6
         run: |
