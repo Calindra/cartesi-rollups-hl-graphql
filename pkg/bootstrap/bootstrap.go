@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math/big"
 	"net/url"
 	"os"
 	"path"
@@ -25,7 +24,6 @@ import (
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/reader"
 	"github.com/calindra/cartesi-rollups-hl-graphql/pkg/supervisor"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -136,7 +134,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		TimeoutAdvance:      defaultTimeout,
 		TimeoutWorker:       supervisor.DefaultSupervisorTimeout,
 		GraphileUrl:         graphileUrl,
-		GraphileDisableSync: false,
+		GraphileDisableSync: true,
 		Salsa:               false,
 		SalsaUrl:            "127.0.0.1:5005",
 		AvailFromBlock:      0,
@@ -168,36 +166,6 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 			AnvilCmd: anvilLocation,
 		})
 		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
-	}
-
-	if !opts.LoadTestMode && !opts.GraphileDisableSync {
-		slog.Debug("Sync initialization")
-		var synchronizer supervisor.Worker
-
-		if opts.NodeVersion == "v2" {
-			graphileUrl, err := url.Parse(opts.GraphileUrl)
-			if err != nil {
-				slog.Error("Error parsing Graphile URL", "error", err)
-				panic(err)
-			}
-
-			synchronizer = container.GetGraphileSynchronizer(*graphileUrl, opts.LoadTestMode)
-		} else {
-			synchronizer = container.GetGraphQLSynchronizer()
-		}
-
-		w.Workers = append(w.Workers, synchronizer)
-
-		opts.RpcUrl = fmt.Sprintf("ws://%s:%v", opts.AnvilAddress, opts.AnvilPort)
-		fromBlock := new(big.Int).SetUint64(opts.FromBlock)
-
-		execVoucherListener := convenience.NewExecListener(
-			opts.RpcUrl,
-			common.HexToAddress(opts.ApplicationAddress),
-			convenienceService,
-			fromBlock,
-		)
-		w.Workers = append(w.Workers, execVoucherListener)
 	}
 
 	e := echo.New()
