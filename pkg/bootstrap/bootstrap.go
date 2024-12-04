@@ -57,6 +57,7 @@ type BootstrapOpts struct {
 	DisableInspect bool
 	// If set, start application.
 	ApplicationArgs     []string
+	GraphQL             bool
 	SqliteFile          string
 	FromBlock           uint64
 	FromBlockL1         *uint64
@@ -104,6 +105,7 @@ func NewBootstrapOpts() BootstrapOpts {
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
+		GraphQL:             true,
 		SqliteFile:          "",
 		FromBlock:           0,
 		FromBlockL1:         nil,
@@ -122,7 +124,7 @@ func NewBootstrapOpts() BootstrapOpts {
 	}
 }
 
-func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
+func NewSupervisorGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	var w supervisor.SupervisorWorker
 	w.Timeout = opts.TimeoutWorker
 	db := CreateDBInstance(opts)
@@ -168,6 +170,107 @@ func NewSupervisorHLGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	}))
 	health.Register(e)
 	reader.Register(e, convenienceService, adapter)
+	w.Workers = append(w.Workers, supervisor.HttpWorker{
+		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
+		Handler: e,
+	})
+
+	if opts.RawEnabled {
+		dbRawUrl, ok := os.LookupEnv("POSTGRES_NODE_DB_URL")
+		if !ok {
+			dbRawUrl = opts.DbRawUrl
+		}
+		dbNodeV2 := sqlx.MustConnect("postgres", dbRawUrl)
+		rawRepository := synchronizernode.NewRawRepository(opts.DbRawUrl, dbNodeV2)
+		synchronizerUpdate := synchronizernode.NewSynchronizerUpdate(
+			container.GetRawInputRepository(),
+			rawRepository,
+			container.GetInputRepository(),
+		)
+		synchronizerReport := synchronizernode.NewSynchronizerReport(
+			container.GetReportRepository(),
+			rawRepository,
+		)
+		synchronizerOutputUpdate := synchronizernode.NewSynchronizerOutputUpdate(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+		)
+
+		abi, err := contracts.OutputsMetaData.GetAbi()
+		if err != nil {
+			panic(err)
+		}
+		abiDecoder := synchronizernode.NewAbiDecoder(abi)
+
+		inputAbi, err := contracts.InputsMetaData.GetAbi()
+		if err != nil {
+			panic(err)
+		}
+
+		inputAbiDecoder := synchronizernode.NewAbiDecoder(inputAbi)
+
+		synchronizerOutputCreate := synchronizernode.NewSynchronizerOutputCreate(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+			abiDecoder,
+		)
+
+		synchronizerOutputExecuted := synchronizernode.NewSynchronizerOutputExecuted(
+			container.GetVoucherRepository(),
+			container.GetNoticeRepository(),
+			rawRepository,
+			container.GetRawOutputRefRepository(),
+		)
+
+		synchronizerInputCreate := synchronizernode.NewSynchronizerInputCreator(
+			container.GetInputRepository(),
+			container.GetRawInputRepository(),
+			rawRepository,
+			inputAbiDecoder,
+		)
+
+		rawSequencer := synchronizernode.NewSynchronizerCreateWorker(
+			container.GetInputRepository(),
+			container.GetRawInputRepository(),
+			opts.DbRawUrl,
+			rawRepository,
+			&synchronizerUpdate,
+			container.GetOutputDecoder(),
+			synchronizerReport,
+			synchronizerOutputUpdate,
+			container.GetRawOutputRefRepository(),
+			synchronizerOutputCreate,
+			synchronizerInputCreate,
+			synchronizerOutputExecuted,
+		)
+		w.Workers = append(w.Workers, rawSequencer)
+	}
+
+	cleanSync := synchronizer.NewCleanSynchronizer(container.GetSyncRepository(), nil)
+	w.Workers = append(w.Workers, cleanSync)
+
+	slog.Info("Listening", "port", opts.HttpPort)
+	return w
+}
+
+func NewSupervisor(opts BootstrapOpts) supervisor.SupervisorWorker {
+	var w supervisor.SupervisorWorker
+	w.Timeout = opts.TimeoutWorker
+	db := CreateDBInstance(opts)
+	container := convenience.NewContainer(*db, opts.AutoCount)
+
+	e := echo.New()
+	e.Use(middleware.CORS())
+	e.Use(middleware.Recover())
+	e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		ErrorMessage: "Request timed out",
+		Timeout:      opts.TimeoutInspect,
+	}))
+	health.Register(e)
 	w.Workers = append(w.Workers, supervisor.HttpWorker{
 		Address: fmt.Sprintf("%v:%v", opts.HttpAddress, opts.HttpPort),
 		Handler: e,

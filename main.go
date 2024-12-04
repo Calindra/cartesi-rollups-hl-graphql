@@ -177,6 +177,10 @@ func init() {
 	cmd.Flags().StringVar(&opts.RpcUrl, "rpc-url", opts.RpcUrl,
 		"If set, hlgraphql connects to this url instead of setting up Anvil")
 
+	// convenience experimental implementation
+	cmd.Flags().BoolVar(&opts.GraphQL, "graphql", opts.GraphQL,
+		"If set, enables the graphql layer")
+
 	// database file
 	cmd.Flags().StringVar(&opts.SqliteFile, "sqlite-file", opts.SqliteFile,
 		"The sqlite file to load the state")
@@ -289,7 +293,12 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}()
 	LoadEnv()
-	err := bootstrap.NewSupervisorHLGraphQL(opts).Start(ctx, ready)
+	var err error
+	if opts.GraphQL {
+		err = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
+	} else {
+		err = bootstrap.NewSupervisor(opts).Start(ctx, ready)
+	}
 	cobra.CheckErr(err)
 }
 
