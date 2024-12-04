@@ -39,13 +39,6 @@ GraphQL running at http://localhost:HTTP_PORT/graphql
 Press Ctrl+C to stop the node
 `
 
-var startupMessageWithLambada = `
-Http Rollups for development started at http://localhost:ROLLUPS_PORT
-GraphQL running at http://localhost:HTTP_PORT/graphql
-Lambada running at http://SALSA_URL
-Press Ctrl+C to stop the node
-`
-
 var tempFromBlockL1 uint64
 
 var cmd = &cobra.Command{
@@ -72,15 +65,6 @@ var CompletionCmd = &cobra.Command{
 		case "powershell":
 			cobra.CheckErr(cmd.Root().GenPowerShellCompletion(os.Stdout))
 		}
-	},
-}
-
-var addressBookCmd = &cobra.Command{
-	Use:   "address-book",
-	Short: "Show address book",
-	Run: func(cmd *cobra.Command, args []string) {
-		slog.Debug("Read json and print address...")
-		devnet.ShowAddresses()
 	},
 }
 
@@ -152,14 +136,6 @@ func CheckIfValidSize(size uint64) error {
 }
 
 func init() {
-	// anvil-*
-	cmd.Flags().StringVar(&opts.AnvilAddress, "anvil-address", opts.AnvilAddress,
-		"HTTP address used by Anvil")
-	cmd.Flags().IntVar(&opts.AnvilPort, "anvil-port", opts.AnvilPort,
-		"HTTP port used by Anvil")
-	cmd.Flags().BoolVar(&opts.AnvilVerbose, "anvil-verbose", opts.AnvilVerbose,
-		"If set, prints Anvil's output")
-
 	// contracts-*
 	cmd.Flags().StringVar(&opts.ApplicationAddress, "contracts-application-address",
 		opts.ApplicationAddress, "Application contract address")
@@ -174,8 +150,6 @@ func init() {
 	cmd.Flags().BoolVar(&opts.EnableEcho, "enable-echo", opts.EnableEcho,
 		"If set, hlgraphql starts a built-in echo application")
 
-	cmd.Flags().StringVar(&opts.Sequencer, "sequencer", opts.Sequencer,
-		"Set the sequencer (inputbox[default] or espresso)")
 	cmd.Flags().StringVar(&opts.EspressoUrl, "espresso-url", opts.EspressoUrl,
 		"Set the Espresso base url")
 
@@ -186,8 +160,6 @@ func init() {
 	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: hlgraphql --sm-deadline-advance-state 30s")
 
 	// disable-*
-	cmd.Flags().BoolVar(&opts.DisableDevnet, "disable-devnet", opts.DisableDevnet,
-		"If set, hlgraphql won't start a local devnet")
 	cmd.Flags().BoolVar(&opts.DisableAdvance, "disable-advance", opts.DisableAdvance,
 		"If set, hlgraphql won't start the inputter to get inputs from the local chain")
 	cmd.Flags().BoolVar(&opts.DisableInspect, "disable-inspect", opts.DisableInspect,
@@ -206,8 +178,8 @@ func init() {
 		"If set, hlgraphql connects to this url instead of setting up Anvil")
 
 	// convenience experimental implementation
-	cmd.Flags().BoolVar(&opts.HLGraphQL, "high-level-graphql", opts.HLGraphQL,
-		"If set, enables the convenience layer experiment")
+	cmd.Flags().BoolVar(&opts.GraphQL, "graphql", opts.GraphQL,
+		"If set, enables the graphql layer")
 
 	// database file
 	cmd.Flags().StringVar(&opts.SqliteFile, "sqlite-file", opts.SqliteFile,
@@ -231,14 +203,6 @@ func init() {
 		"If set, disable graphile synchronization")
 
 	cmd.Flags().StringVar(&opts.GraphileUrl, "graphile-url", opts.GraphileUrl, "URL used to connect to Graphile")
-
-	cmd.Flags().BoolVar(&opts.Salsa, "salsa", opts.Salsa, "If set, starts salsa")
-
-	cmd.Flags().StringVar(&opts.SalsaUrl, "salsa-url", opts.SalsaUrl, "Url used to start Salsa")
-	cmd.Flags().BoolVar(&opts.AvailEnabled, "avail-enabled", opts.AvailEnabled, "If set, enables Avail with Paio's sequencer")
-	cmd.Flags().Uint64Var(&opts.AvailFromBlock, "avail-from-block", opts.AvailFromBlock, "The beginning of the queried range for events")
-
-	cmd.Flags().StringVar(&opts.PaioServerUrl, "paio-server-url", opts.PaioServerUrl, "The Paio's server url")
 
 	cmd.Flags().StringVar(&opts.DbRawUrl, "db-raw-url", opts.DbRawUrl, "The raw database url")
 	cmd.Flags().BoolVar(&opts.RawEnabled, "raw-enabled", opts.RawEnabled, "If set, enables raw database")
@@ -273,9 +237,6 @@ func run(cmd *cobra.Command, args []string) {
 	// check args
 	checkEthAddress(cmd, "address-input-box")
 	checkEthAddress(cmd, "address-application")
-	if opts.AnvilPort == 0 {
-		exitf("--anvil-port cannot be 0")
-	}
 	if !cmd.Flags().Changed("sequencer") && cmd.Flags().Changed("rpc-url") && !cmd.Flags().Changed("contracts-input-box-block") {
 		exitf("must set --contracts-input-box-block when setting --rpc-url")
 	}
@@ -289,6 +250,12 @@ func run(cmd *cobra.Command, args []string) {
 	deprecatedWarning("graphile-disable-sync", "")
 	deprecatedWarning("disable-devnet", "")
 	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
+	deprecatedWarning("sequencer", "")
+	deprecatedWarning("salsa", "")
+	deprecatedWarning("salsa-url", "")
+	deprecatedWarning("avail-enabled", "")
+	deprecatedWarning("avail-from-block", "")
+	deprecatedWarning("paio-server-url", "")
 
 	opts.ApplicationArgs = args
 
@@ -296,13 +263,7 @@ func run(cmd *cobra.Command, args []string) {
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	var startMessage string
-
-	if opts.Salsa {
-		startMessage = startupMessageWithLambada
-	} else {
-		startMessage = startupMessage
-	}
+	startMessage := startupMessage
 
 	var inspectMessage string
 	if !opts.DisableInspect {
@@ -324,10 +285,6 @@ func run(cmd *cobra.Command, args []string) {
 				fmt.Sprint(opts.HttpPort), -1)
 			msg = strings.Replace(
 				msg,
-				"SALSA_URL",
-				fmt.Sprint(opts.SalsaUrl), -1)
-			msg = strings.Replace(
-				msg,
 				"ROLLUPS_PORT",
 				fmt.Sprint(opts.HttpRollupsPort), -1)
 			fmt.Println(msg)
@@ -336,7 +293,12 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}()
 	LoadEnv()
-	err := bootstrap.NewSupervisorHLGraphQL(opts).Start(ctx, ready)
+	var err error
+	if opts.GraphQL {
+		err = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
+	} else {
+		err = bootstrap.NewSupervisor(opts).Start(ctx, ready)
+	}
 	cobra.CheckErr(err)
 }
 
@@ -369,7 +331,7 @@ func LoadEnv() {
 }
 
 func main() {
-	cmd.AddCommand(addressBookCmd, celestiaCmd, CompletionCmd, espressoCmd, availCmd)
+	cmd.AddCommand(celestiaCmd, CompletionCmd, espressoCmd, availCmd)
 	cobra.CheckErr(cmd.Execute())
 }
 
