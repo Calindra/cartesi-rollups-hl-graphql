@@ -45,7 +45,7 @@ func (x GraphileSynchronizer) Start(ctx context.Context, ready chan<- struct{}) 
 
 		if err != nil {
 			slog.Warn(
-				"Voucher fetcher error, we will try again",
+				"Voucher Graphile fetcher error, we will try again",
 				"error", err.Error(),
 			)
 		} else {
