@@ -53,7 +53,7 @@ func (x *Synchronizer) VoucherPolling(ctx context.Context) error {
 		voucherResp, err := x.VoucherFetcher.Fetch()
 		if err != nil {
 			slog.Warn(
-				"Voucher fetcher error, we will try again",
+				"Voucher polling fetcher error, we will try again",
 				"error", err.Error(),
 			)
 		} else {
