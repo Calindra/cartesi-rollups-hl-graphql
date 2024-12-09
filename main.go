@@ -30,11 +30,7 @@ var (
 	APP_ADDRESS          = common.HexToAddress(devnet.ApplicationAddress)
 )
 
-var inspectMessageText = `
-Inspect running at http://localhost:HTTP_PORT/inspect/`
-
 var startupMessage = `
-Http Rollups for development started at http://localhost:ROLLUPS_PORT
 GraphQL running at http://localhost:HTTP_PORT/graphql
 Press Ctrl+C to stop the node
 `
@@ -66,50 +62,6 @@ var CompletionCmd = &cobra.Command{
 			cobra.CheckErr(cmd.Root().GenPowerShellCompletion(os.Stdout))
 		}
 	},
-}
-
-// Celestia Network
-type CelestiaOpts struct {
-	Payload     string
-	PayloadPath string
-	PayloadUrl  string
-	Namespace   string
-	Height      uint64
-	Start       uint64
-	End         uint64
-	RpcUrl      string
-}
-
-// Espresso
-type EspressoOpts struct {
-	Payload   string
-	Namespace int
-}
-
-var celestiaCmd = &cobra.Command{
-	Use:   "celestia",
-	Short: "Handle blob to Celestia",
-	Long:  "Submit a blob and check proofs after one hour to Celestia Network",
-}
-
-var espressoCmd = &cobra.Command{
-	Use:   "espresso",
-	Short: "Handles Espresso transactions",
-	Long:  "Submit and get a transaction from Espresso using Cappuccino APIs",
-}
-
-type AvailOpts struct {
-	Payload     string
-	ChainId     int
-	AppId       int
-	Address     string
-	MaxGasPrice uint64
-}
-
-var availCmd = &cobra.Command{
-	Use:   "avail",
-	Short: "Handles Avail transactions",
-	Long:  "Submit a transaction to Avail",
 }
 
 var (
@@ -150,20 +102,10 @@ func init() {
 	cmd.Flags().BoolVar(&opts.EnableEcho, "enable-echo", opts.EnableEcho,
 		"If set, hlgraphql starts a built-in echo application")
 
-	cmd.Flags().StringVar(&opts.EspressoUrl, "espresso-url", opts.EspressoUrl,
-		"Set the Espresso base url")
-
-	cmd.Flags().Uint64Var(&opts.Namespace, "namespace", opts.Namespace,
-		"Set the namespace for espresso")
 	cmd.Flags().DurationVar(&opts.TimeoutWorker, "timeout-worker", opts.TimeoutWorker, "Timeout for workers. Example: hlgraphql --timeout-worker 30s")
 	cmd.Flags().DurationVar(&opts.TimeoutInspect, "sm-deadline-inspect-state", opts.TimeoutInspect, "Timeout for inspect requests. Example: hlgraphql --sm-deadline-inspect-state 30s")
-	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: hlgraphql --sm-deadline-advance-state 30s")
 
 	// disable-*
-	cmd.Flags().BoolVar(&opts.DisableAdvance, "disable-advance", opts.DisableAdvance,
-		"If set, hlgraphql won't start the inputter to get inputs from the local chain")
-	cmd.Flags().BoolVar(&opts.DisableInspect, "disable-inspect", opts.DisableInspect,
-		"If set, hlgraphql won't accept inspect inputs")
 
 	// http-*
 	cmd.Flags().StringVar(&opts.HttpAddress, "http-address", opts.HttpAddress,
@@ -266,9 +208,6 @@ func run(cmd *cobra.Command, args []string) {
 	startMessage := startupMessage
 
 	var inspectMessage string
-	if !opts.DisableInspect {
-		inspectMessage = inspectMessageText
-	}
 
 	// start hlgraphql
 	ready := make(chan struct{}, 1)
@@ -326,7 +265,7 @@ func LoadEnv() {
 }
 
 func main() {
-	cmd.AddCommand(celestiaCmd, CompletionCmd, espressoCmd, availCmd)
+	cmd.AddCommand(CompletionCmd)
 	cobra.CheckErr(cmd.Execute())
 }
 

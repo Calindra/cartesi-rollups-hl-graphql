@@ -64,7 +64,6 @@ type BootstrapOpts struct {
 	LoadTestMode        bool
 	Namespace           uint64
 	TimeoutInspect      time.Duration
-	TimeoutAdvance      time.Duration
 	TimeoutWorker       time.Duration
 	GraphileUrl         string
 	GraphileDisableSync bool
@@ -112,7 +111,6 @@ func NewBootstrapOpts() BootstrapOpts {
 		LoadTestMode:        false,
 		Namespace:           DefaultNamespace,
 		TimeoutInspect:      defaultTimeout,
-		TimeoutAdvance:      defaultTimeout,
 		TimeoutWorker:       supervisor.DefaultSupervisorTimeout,
 		GraphileUrl:         graphileUrl,
 		GraphileDisableSync: false,
