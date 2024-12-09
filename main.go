@@ -293,12 +293,7 @@ func run(cmd *cobra.Command, args []string) {
 		}
 	}()
 	LoadEnv()
-	var err error
-	if opts.GraphQL {
-		err = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
-	} else {
-		err = bootstrap.NewSupervisor(opts).Start(ctx, ready)
-	}
+	var err error = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
 	cobra.CheckErr(err)
 }
 
