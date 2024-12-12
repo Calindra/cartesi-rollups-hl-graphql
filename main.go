@@ -23,6 +23,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -160,6 +161,11 @@ func deprecatedWarningCmd(cmd *cobra.Command, flag string, replacement string) {
 }
 
 func deprecatedFlags(cmd *cobra.Command) {
+	v := viper.New()
+	err := v.BindPFlags(cmd.Flags())
+	v.Debug()
+	cobra.CheckErr(err)
+
 	deprecatedWarningCmd(cmd, "graphile-disable-sync", "")
 	checkAndSetFlag(cmd, "db-raw-url", func(val string) { opts.DbRawUrl = val }, "POSTGRES_NODE_DB_URL")
 	deprecatedWarningCmd(cmd, "sequencer", "")
@@ -167,7 +173,7 @@ func deprecatedFlags(cmd *cobra.Command) {
 	// checkAndSetFlag(cmd, "contracts-application-address", func(val string) { opts.ApplicationAddress = val }, "APPLICATION_ADDRESS")
 	// checkAndSetFlag(cmd, "contracts-input-box-address", func(val string) { opts.InputBoxAddress = val }, "INPUT_BOX_ADDRESS")
 	// checkAndSetFlag(cmd, "contracts-input-box-block", func(val uint64) { opts.InputBoxBlock = val }, "INPUT_BOX_BLOCK")
-	checkAndSetFlag(cmd, "enable-debug", func(val bool) { debug = val }, "GRAPHQL_DEBUG")
+	checkAndSetFlag(cmd, "enable-debug", func(val string) { debug = val == "true" }, "GRAPHQL_DEBUG")
 	// checkAndSetFlag(cmd, "enable-color", func(val bool) { color = val }, "COLOR")
 	// checkAndSetFlag(cmd, "enable-echo", func(val bool) { opts.EnableEcho = val }, "ENABLE_ECHO")
 	// checkAndSetFlag(cmd, "timeout-worker", func(val string) { opts.TimeoutWorker, _ = time.ParseDuration(val) }, "TIMEOUT_WORKER")
@@ -187,49 +193,20 @@ func deprecatedFlags(cmd *cobra.Command) {
 	// checkAndSetFlag(cmd, "raw-enabled", func(val bool) { opts.RawEnabled = val }, "RAW_ENABLED")
 }
 
-func checkAndSetFlag(cmd *cobra.Command, flagName string, setOpt interface{}, flagEnv string) {
+func checkAndSetFlag(cmd *cobra.Command, flagName string, setOpt func(string), flagEnv string) {
 	deprecatedMsg := fmt.Sprint("Please use ", flagEnv, " instead.")
 	val, isEnvVarPresent := os.LookupEnv(flagEnv)
 	haveFlag := cmd.Flags().Changed(flagName)
 	slog.Debug(fmt.Sprintf("Checking flag '%s' with environment variable '%s'", flagName, flagEnv))
 	slog.Debug("Check values: ", "env", isEnvVarPresent, "flag", haveFlag)
-	if !isEnvVarPresent && haveFlag {
-		deprecatedWarningCmd(cmd, flagName, deprecatedMsg)
-		return
-	}
-
-	var err error
-	switch opt := setOpt.(type) {
-	case func(string):
-		var value string
-		if isEnvVarPresent {
-			value = val
-		} else {
-			value, err = cmd.Flags().GetString(flagName)
-			slog.Debug(fmt.Sprintf("Flag '%s' value: %s and error %s", flagName, value, err.Error()))
-		}
-		opt(value)
-	case func(bool):
-		var value bool
-		value, err = cmd.Flags().GetBool(flagName)
-		opt(value)
-	case func(int):
-		var value int
-		value, err = cmd.Flags().GetInt(flagName)
-		opt(value)
-	case func(uint64):
-		var value uint64
-		value, err = cmd.Flags().GetUint64(flagName)
-		opt(value)
-	default:
-		err = fmt.Errorf("unsupported flag type")
-	}
-	if !isEnvVarPresent {
-		cobra.CheckErr(err)
+	deprecatedWarningCmd(cmd, flagName, deprecatedMsg)
+	if isEnvVarPresent {
+		setOpt(val)
 	}
 }
 
 func run(cmd *cobra.Command, args []string) {
+	LoadEnv()
 	ctx := cmd.Context()
 	startTime := time.Now()
 
@@ -289,7 +266,6 @@ func run(cmd *cobra.Command, args []string) {
 		case <-ctx.Done():
 		}
 	}()
-	LoadEnv()
 	var err error = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
 	cobra.CheckErr(err)
 }
