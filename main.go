@@ -151,12 +151,81 @@ func init() {
 
 	cmd.Flags().IntVar(&opts.EpochBlocks, "epoch-blocks", opts.EpochBlocks,
 		"Number of blocks in each epoch")
-
 }
 
-func deprecatedWarning(flag string, replacement string) {
-	if strings.Contains(strings.Join(os.Args, " "), "--"+flag) {
+func deprecatedWarningCmd(cmd *cobra.Command, flag string, replacement string) {
+	if cmd.Flags().Changed(flag) {
 		slog.Warn(fmt.Sprintf("The '%s' flag is deprecated. %s", flag, replacement))
+	}
+}
+
+func deprecatedFlags(cmd *cobra.Command) {
+	deprecatedWarningCmd(cmd, "graphile-disable-sync", "")
+	checkAndSetFlag(cmd, "db-raw-url", func(val string) { opts.DbRawUrl = val }, "POSTGRES_NODE_DB_URL")
+	deprecatedWarningCmd(cmd, "sequencer", "")
+
+	// checkAndSetFlag(cmd, "contracts-application-address", func(val string) { opts.ApplicationAddress = val }, "APPLICATION_ADDRESS")
+	// checkAndSetFlag(cmd, "contracts-input-box-address", func(val string) { opts.InputBoxAddress = val }, "INPUT_BOX_ADDRESS")
+	// checkAndSetFlag(cmd, "contracts-input-box-block", func(val uint64) { opts.InputBoxBlock = val }, "INPUT_BOX_BLOCK")
+	checkAndSetFlag(cmd, "enable-debug", func(val bool) { debug = val }, "GRAPHQL_DEBUG")
+	// checkAndSetFlag(cmd, "enable-color", func(val bool) { color = val }, "COLOR")
+	// checkAndSetFlag(cmd, "enable-echo", func(val bool) { opts.EnableEcho = val }, "ENABLE_ECHO")
+	// checkAndSetFlag(cmd, "timeout-worker", func(val string) { opts.TimeoutWorker, _ = time.ParseDuration(val) }, "TIMEOUT_WORKER")
+	// checkAndSetFlag(cmd, "sm-deadline-inspect-state", func(val string) { opts.TimeoutInspect, _ = time.ParseDuration(val) }, "SM_DEADLINE_INSPECT_STATE")
+	// checkAndSetFlag(cmd, "http-address", func(val string) { opts.HttpAddress = val }, "HTTP_ADDRESS")
+	// checkAndSetFlag(cmd, "http-port", func(val int) { opts.HttpPort = val }, "HTTP_PORT")
+	// checkAndSetFlag(cmd, "http-rollups-port", func(val int) { opts.HttpRollupsPort = val }, "HTTP_ROLLUPS_PORT")
+	// checkAndSetFlag(cmd, "rpc-url", func(val string) { opts.RpcUrl = val }, "RPC_URL")
+	// checkAndSetFlag(cmd, "graphql", func(val bool) { opts.GraphQL = val }, "GRAPHQL")
+	// checkAndSetFlag(cmd, "sqlite-file", func(val string) { opts.SqliteFile = val }, "SQLITE_FILE")
+	// checkAndSetFlag(cmd, "from-block", func(val uint64) { opts.FromBlock = val }, "FROM_BLOCK")
+	// checkAndSetFlag(cmd, "from-l1-block", func(val uint64) { tempFromBlockL1 = val }, "FROM_BLOCK_L1")
+	// checkAndSetFlag(cmd, "db-implementation", func(val string) { opts.DbImplementation = val }, "DB_IMPLEMENTATION")
+	// checkAndSetFlag(cmd, "node-version", func(val string) { opts.NodeVersion = val }, "NODE_VERSION")
+	// checkAndSetFlag(cmd, "load-test-mode", func(val bool) { opts.LoadTestMode = val }, "LOAD_TEST_MODE")
+	// checkAndSetFlag(cmd, "epoch-blocks", func(val int) { opts.EpochBlocks = val }, "EPOCH_BLOCKS")
+	// checkAndSetFlag(cmd, "raw-enabled", func(val bool) { opts.RawEnabled = val }, "RAW_ENABLED")
+}
+
+func checkAndSetFlag(cmd *cobra.Command, flagName string, setOpt interface{}, flagEnv string) {
+	deprecatedMsg := fmt.Sprint("Please use ", flagEnv, " instead.")
+	val, isEnvVarPresent := os.LookupEnv(flagEnv)
+	haveFlag := cmd.Flags().Changed(flagName)
+	slog.Debug(fmt.Sprintf("Checking flag '%s' with environment variable '%s'", flagName, flagEnv))
+	slog.Debug("Check values: ", "env", isEnvVarPresent, "flag", haveFlag)
+	if !isEnvVarPresent && haveFlag {
+		deprecatedWarningCmd(cmd, flagName, deprecatedMsg)
+		return
+	}
+
+	var err error
+	switch opt := setOpt.(type) {
+	case func(string):
+		var value string
+		if isEnvVarPresent {
+			value = val
+		} else {
+			value, err = cmd.Flags().GetString(flagName)
+			slog.Debug(fmt.Sprintf("Flag '%s' value: %s and error %s", flagName, value, err.Error()))
+		}
+		opt(value)
+	case func(bool):
+		var value bool
+		value, err = cmd.Flags().GetBool(flagName)
+		opt(value)
+	case func(int):
+		var value int
+		value, err = cmd.Flags().GetInt(flagName)
+		opt(value)
+	case func(uint64):
+		var value uint64
+		value, err = cmd.Flags().GetUint64(flagName)
+		opt(value)
+	default:
+		err = fmt.Errorf("unsupported flag type")
+	}
+	if !isEnvVarPresent {
+		cobra.CheckErr(err)
 	}
 }
 
@@ -188,18 +257,7 @@ func run(cmd *cobra.Command, args []string) {
 	if cmd.Flags().Changed("from-l1-block") {
 		opts.FromBlockL1 = &tempFromBlockL1
 	}
-	deprecatedWarning("high-level-graphql", "")
-	deprecatedWarning("graphile-disable-sync", "")
-	deprecatedWarning("disable-devnet", "")
-	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
-	deprecatedWarning("sequencer", "")
-	deprecatedWarning("salsa", "")
-	deprecatedWarning("salsa-url", "")
-	deprecatedWarning("avail-enabled", "")
-	deprecatedWarning("avail-from-block", "")
-	deprecatedWarning("paio-server-url", "")
-
-	opts.ApplicationArgs = args
+	deprecatedFlags(cmd)
 
 	// handle signals with notify context
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
