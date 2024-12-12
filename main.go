@@ -163,8 +163,8 @@ func deprecatedWarningCmd(cmd *cobra.Command, flag string, replacement string) {
 func deprecatedFlags(cmd *cobra.Command) {
 	v := viper.New()
 	err := v.BindPFlags(cmd.Flags())
-	v.Debug()
 	cobra.CheckErr(err)
+	v.Debug()
 
 	deprecatedWarningCmd(cmd, "graphile-disable-sync", "")
 	checkAndSetFlag(cmd, "db-raw-url", func(val string) { opts.DbRawUrl = val }, "POSTGRES_NODE_DB_URL")
