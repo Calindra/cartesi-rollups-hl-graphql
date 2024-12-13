@@ -7,6 +7,9 @@
 
 [Internal docs](./docs/convenience.md)
 
+> [!IMPORTANT]
+> Deprecated repository. Go to https://github.com/Calindra/cartesi-rollups-graphql to get the latest version.
+
 ## Description
 
 Exposes the High Level GraphQL reader API in the endpoint `http://127.0.0.1:8080/graphql`.
