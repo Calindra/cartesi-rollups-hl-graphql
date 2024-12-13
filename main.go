@@ -22,7 +22,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -30,11 +32,7 @@ var (
 	APP_ADDRESS          = common.HexToAddress(devnet.ApplicationAddress)
 )
 
-var inspectMessageText = `
-Inspect running at http://localhost:HTTP_PORT/inspect/`
-
 var startupMessage = `
-Http Rollups for development started at http://localhost:ROLLUPS_PORT
 GraphQL running at http://localhost:HTTP_PORT/graphql
 Press Ctrl+C to stop the node
 `
@@ -66,50 +64,6 @@ var CompletionCmd = &cobra.Command{
 			cobra.CheckErr(cmd.Root().GenPowerShellCompletion(os.Stdout))
 		}
 	},
-}
-
-// Celestia Network
-type CelestiaOpts struct {
-	Payload     string
-	PayloadPath string
-	PayloadUrl  string
-	Namespace   string
-	Height      uint64
-	Start       uint64
-	End         uint64
-	RpcUrl      string
-}
-
-// Espresso
-type EspressoOpts struct {
-	Payload   string
-	Namespace int
-}
-
-var celestiaCmd = &cobra.Command{
-	Use:   "celestia",
-	Short: "Handle blob to Celestia",
-	Long:  "Submit a blob and check proofs after one hour to Celestia Network",
-}
-
-var espressoCmd = &cobra.Command{
-	Use:   "espresso",
-	Short: "Handles Espresso transactions",
-	Long:  "Submit and get a transaction from Espresso using Cappuccino APIs",
-}
-
-type AvailOpts struct {
-	Payload     string
-	ChainId     int
-	AppId       int
-	Address     string
-	MaxGasPrice uint64
-}
-
-var availCmd = &cobra.Command{
-	Use:   "avail",
-	Short: "Handles Avail transactions",
-	Long:  "Submit a transaction to Avail",
 }
 
 var (
@@ -150,20 +104,10 @@ func init() {
 	cmd.Flags().BoolVar(&opts.EnableEcho, "enable-echo", opts.EnableEcho,
 		"If set, hlgraphql starts a built-in echo application")
 
-	cmd.Flags().StringVar(&opts.EspressoUrl, "espresso-url", opts.EspressoUrl,
-		"Set the Espresso base url")
-
-	cmd.Flags().Uint64Var(&opts.Namespace, "namespace", opts.Namespace,
-		"Set the namespace for espresso")
 	cmd.Flags().DurationVar(&opts.TimeoutWorker, "timeout-worker", opts.TimeoutWorker, "Timeout for workers. Example: hlgraphql --timeout-worker 30s")
 	cmd.Flags().DurationVar(&opts.TimeoutInspect, "sm-deadline-inspect-state", opts.TimeoutInspect, "Timeout for inspect requests. Example: hlgraphql --sm-deadline-inspect-state 30s")
-	cmd.Flags().DurationVar(&opts.TimeoutAdvance, "sm-deadline-advance-state", opts.TimeoutAdvance, "Timeout for advance requests. Example: hlgraphql --sm-deadline-advance-state 30s")
 
 	// disable-*
-	cmd.Flags().BoolVar(&opts.DisableAdvance, "disable-advance", opts.DisableAdvance,
-		"If set, hlgraphql won't start the inputter to get inputs from the local chain")
-	cmd.Flags().BoolVar(&opts.DisableInspect, "disable-inspect", opts.DisableInspect,
-		"If set, hlgraphql won't accept inspect inputs")
 
 	// http-*
 	cmd.Flags().StringVar(&opts.HttpAddress, "http-address", opts.HttpAddress,
@@ -176,10 +120,6 @@ func init() {
 	// rpc-url
 	cmd.Flags().StringVar(&opts.RpcUrl, "rpc-url", opts.RpcUrl,
 		"If set, hlgraphql connects to this url instead of setting up Anvil")
-
-	// convenience experimental implementation
-	cmd.Flags().BoolVar(&opts.GraphQL, "graphql", opts.GraphQL,
-		"If set, enables the graphql layer")
 
 	// database file
 	cmd.Flags().StringVar(&opts.SqliteFile, "sqlite-file", opts.SqliteFile,
@@ -209,16 +149,58 @@ func init() {
 
 	cmd.Flags().IntVar(&opts.EpochBlocks, "epoch-blocks", opts.EpochBlocks,
 		"Number of blocks in each epoch")
-
 }
 
-func deprecatedWarning(flag string, replacement string) {
-	if strings.Contains(strings.Join(os.Args, " "), "--"+flag) {
+func deprecatedWarningCmd(cmd *cobra.Command, flag string, replacement string) {
+	if cmd.Flags().Changed(flag) {
 		slog.Warn(fmt.Sprintf("The '%s' flag is deprecated. %s", flag, replacement))
 	}
 }
 
+func deprecatedFlags(cmd *cobra.Command) {
+	v := viper.New()
+	err := v.BindPFlags(cmd.Flags())
+	cobra.CheckErr(err)
+
+	deprecatedWarningCmd(cmd, "graphile-disable-sync", "")
+	checkAndSetFlag(cmd, "db-raw-url", func(val string) { opts.DbRawUrl = val }, "POSTGRES_NODE_DB_URL")
+
+	checkAndSetFlag(cmd, "contracts-application-address", func(val string) { opts.ApplicationAddress = val }, "APPLICATION_ADDRESS")
+	checkAndSetFlag(cmd, "contracts-input-box-address", func(val string) { opts.InputBoxAddress = val }, "INPUT_BOX_ADDRESS")
+	checkAndSetFlag(cmd, "contracts-input-box-block", func(val string) { opts.InputBoxBlock = cast.ToUint64(val) }, "INPUT_BOX_BLOCK")
+	checkAndSetFlag(cmd, "enable-debug", func(val string) { debug = cast.ToBool(val) }, "GRAPHQL_DEBUG")
+	checkAndSetFlag(cmd, "enable-color", func(val string) { color = cast.ToBool(val) }, "COLOR")
+	checkAndSetFlag(cmd, "enable-echo", func(val string) { opts.EnableEcho = cast.ToBool(val) }, "ENABLE_ECHO")
+	checkAndSetFlag(cmd, "timeout-worker", func(val string) { opts.TimeoutWorker, _ = time.ParseDuration(val) }, "TIMEOUT_WORKER")
+	checkAndSetFlag(cmd, "sm-deadline-inspect-state", func(val string) { opts.TimeoutInspect, _ = time.ParseDuration(val) }, "SM_DEADLINE_INSPECT_STATE")
+	checkAndSetFlag(cmd, "http-address", func(val string) { opts.HttpAddress = val }, "HTTP_ADDRESS")
+	checkAndSetFlag(cmd, "http-port", func(val string) { opts.HttpPort = cast.ToInt(val) }, "HTTP_PORT")
+	checkAndSetFlag(cmd, "http-rollups-port", func(val string) { opts.HttpRollupsPort = cast.ToInt(val) }, "HTTP_ROLLUPS_PORT")
+	checkAndSetFlag(cmd, "rpc-url", func(val string) { opts.RpcUrl = val }, "RPC_URL")
+	checkAndSetFlag(cmd, "sqlite-file", func(val string) { opts.SqliteFile = val }, "SQLITE_FILE")
+	checkAndSetFlag(cmd, "from-block", func(val string) { opts.FromBlock = cast.ToUint64(val) }, "FROM_BLOCK")
+	checkAndSetFlag(cmd, "from-l1-block", func(val string) { tempFromBlockL1 = cast.ToUint64(val) }, "FROM_BLOCK_L1")
+	checkAndSetFlag(cmd, "db-implementation", func(val string) { opts.DbImplementation = val }, "DB_IMPLEMENTATION")
+	checkAndSetFlag(cmd, "node-version", func(val string) { opts.NodeVersion = val }, "NODE_VERSION")
+	checkAndSetFlag(cmd, "load-test-mode", func(val string) { opts.LoadTestMode = cast.ToBool(val) }, "LOAD_TEST_MODE")
+	checkAndSetFlag(cmd, "epoch-blocks", func(val string) { opts.EpochBlocks = cast.ToInt(val) }, "EPOCH_BLOCKS")
+	checkAndSetFlag(cmd, "raw-enabled", func(val string) { opts.RawEnabled = cast.ToBool(val) }, "RAW_ENABLED")
+}
+
+/**
+ * Check if the flag is set and set the value from the environment variable
+ */
+func checkAndSetFlag(cmd *cobra.Command, flagName string, setOptEnv func(string), flagEnv string) {
+	val, isEnvVarPresent := os.LookupEnv(flagEnv)
+	if isEnvVarPresent {
+		setOptEnv(val)
+	}
+	deprecatedMsg := fmt.Sprint("Please use ", flagEnv, " instead.")
+	deprecatedWarningCmd(cmd, flagName, deprecatedMsg)
+}
+
 func run(cmd *cobra.Command, args []string) {
+	LoadEnv()
 	ctx := cmd.Context()
 	startTime := time.Now()
 
@@ -246,18 +228,7 @@ func run(cmd *cobra.Command, args []string) {
 	if cmd.Flags().Changed("from-l1-block") {
 		opts.FromBlockL1 = &tempFromBlockL1
 	}
-	deprecatedWarning("high-level-graphql", "")
-	deprecatedWarning("graphile-disable-sync", "")
-	deprecatedWarning("disable-devnet", "")
-	deprecatedWarning("db-raw-url", "Please use POSTGRES_NODE_DB_URL instead.")
-	deprecatedWarning("sequencer", "")
-	deprecatedWarning("salsa", "")
-	deprecatedWarning("salsa-url", "")
-	deprecatedWarning("avail-enabled", "")
-	deprecatedWarning("avail-from-block", "")
-	deprecatedWarning("paio-server-url", "")
-
-	opts.ApplicationArgs = args
+	deprecatedFlags(cmd)
 
 	// handle signals with notify context
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
@@ -266,9 +237,6 @@ func run(cmd *cobra.Command, args []string) {
 	startMessage := startupMessage
 
 	var inspectMessage string
-	if !opts.DisableInspect {
-		inspectMessage = inspectMessageText
-	}
 
 	// start hlgraphql
 	ready := make(chan struct{}, 1)
@@ -292,7 +260,6 @@ func run(cmd *cobra.Command, args []string) {
 		case <-ctx.Done():
 		}
 	}()
-	LoadEnv()
 	var err error = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
 	cobra.CheckErr(err)
 }
@@ -326,7 +293,7 @@ func LoadEnv() {
 }
 
 func main() {
-	cmd.AddCommand(celestiaCmd, CompletionCmd, espressoCmd, availCmd)
+	cmd.AddCommand(CompletionCmd)
 	cobra.CheckErr(cmd.Execute())
 }
 
