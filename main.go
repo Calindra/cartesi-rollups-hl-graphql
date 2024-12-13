@@ -24,6 +24,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -157,6 +158,11 @@ func deprecatedWarningCmd(cmd *cobra.Command, flag string, replacement string) {
 }
 
 func deprecatedFlags(cmd *cobra.Command) {
+	v := viper.New()
+	err := v.BindPFlags(cmd.Flags())
+	cobra.CheckErr(err)
+	v.Debug()
+
 	deprecatedWarningCmd(cmd, "graphile-disable-sync", "")
 	checkAndSetFlag(cmd, "db-raw-url", func(val string) { opts.DbRawUrl = val }, "POSTGRES_NODE_DB_URL")
 
@@ -195,6 +201,7 @@ func checkAndSetFlag(cmd *cobra.Command, flagName string, setOptEnv func(string)
 }
 
 func run(cmd *cobra.Command, args []string) {
+	LoadEnv()
 	ctx := cmd.Context()
 	startTime := time.Now()
 
@@ -254,7 +261,6 @@ func run(cmd *cobra.Command, args []string) {
 		case <-ctx.Done():
 		}
 	}()
-	LoadEnv()
 	var err error = bootstrap.NewSupervisorGraphQL(opts).Start(ctx, ready)
 	cobra.CheckErr(err)
 }
