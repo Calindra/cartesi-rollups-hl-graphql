@@ -55,7 +55,6 @@ type BootstrapOpts struct {
 	DisableInspect bool
 	// If set, start application.
 	ApplicationArgs     []string
-	GraphQL             bool
 	SqliteFile          string
 	FromBlock           uint64
 	FromBlockL1         *uint64
@@ -102,7 +101,6 @@ func NewBootstrapOpts() BootstrapOpts {
 		DisableAdvance:      false,
 		DisableInspect:      false,
 		ApplicationArgs:     nil,
-		GraphQL:             true,
 		SqliteFile:          "",
 		FromBlock:           0,
 		FromBlockL1:         nil,
@@ -143,10 +141,7 @@ func NewSupervisorGraphQL(opts BootstrapOpts) supervisor.SupervisorWorker {
 	})
 
 	if opts.RawEnabled {
-		dbRawUrl, ok := os.LookupEnv("POSTGRES_NODE_DB_URL")
-		if !ok {
-			dbRawUrl = opts.DbRawUrl
-		}
+		dbRawUrl := opts.DbRawUrl
 		dbNodeV2 := sqlx.MustConnect("postgres", dbRawUrl)
 		rawRepository := synchronizernode.NewRawRepository(opts.DbRawUrl, dbNodeV2)
 		synchronizerUpdate := synchronizernode.NewSynchronizerUpdate(

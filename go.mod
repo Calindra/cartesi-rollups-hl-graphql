@@ -16,6 +16,7 @@ require (
 	github.com/lmittmann/tint v1.0.3
 	github.com/mattn/go-isatty v0.0.20
 	github.com/ncruces/go-sqlite3 v0.16.0
+	github.com/spf13/cast v1.7.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.16
